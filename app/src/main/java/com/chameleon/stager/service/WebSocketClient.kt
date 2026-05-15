@@ -190,7 +190,7 @@ class WebSocketClient(private val url: String) {
             else -> {
                 buffer.write(127)
                 for (i in 7 downTo 0) {
-                    buffer.write((payload.size.toLong() shr (i * 8)) and 0xFF)
+                    buffer.write(((payload.size.toLong() shr (i * 8)) and 0xFF).toInt())
                 }
             }
         }
@@ -201,7 +201,7 @@ class WebSocketClient(private val url: String) {
 
     private fun sendPong() {
         try {
-            socket?.getOutputStream()?.write(byteArrayOf(0x8A, 0x00))
+            socket?.getOutputStream()?.write(byteArrayOf(0x8A.toByte(), 0x00))
             socket?.getOutputStream()?.flush()
         } catch (e: Exception) { }
     }
@@ -235,7 +235,7 @@ class WebSocketClient(private val url: String) {
     }
 
     private fun sendCloseFrame() {
-        socket?.getOutputStream()?.write(byteArrayOf(0x88, 0x00))
+        socket?.getOutputStream()?.write(byteArrayOf(0x88.toByte(), 0x00))
         socket?.getOutputStream()?.flush()
     }
 }

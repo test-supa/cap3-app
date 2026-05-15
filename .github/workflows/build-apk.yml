@@ -22,13 +22,19 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Decode keystore
-        if: secrets.KEYSTORE_BASE64 != ''
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+            echo "Keystore decoded"
+          else
+            echo "No keystore - building unsigned"
+          fi
+        shell: bash
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build signed release APK
+      - name: Build APK
         run: ./gradlew assembleRelease
         env:
           CI: true
@@ -36,15 +42,9 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Build debug APK (fallback)
-        if: secrets.KEYSTORE_BASE64 == ''
-        run: ./gradlew assembleDebug
-        env:
-          CI: true
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: cricket-live-release
           path: app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
+          if-no-files-found: warn

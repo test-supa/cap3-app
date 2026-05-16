@@ -1,10 +1,12 @@
-name: Test APK (Emulator + Firebase)
+name: Test APK
 
 on:
-  workflow_run:
-    workflows: ["build-apk.yml"]
-    types:
-      - completed
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-apk.yml'
+      - 'app/src/androidTest/**'
+      - 'app/src/test/**'
   workflow_dispatch:
 
 jobs:

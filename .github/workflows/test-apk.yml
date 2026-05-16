@@ -3,10 +3,6 @@ name: Test APK
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/test-apk.yml'
-      - 'app/src/androidTest/**'
-      - 'app/src/test/**'
   workflow_dispatch:
 
 jobs:

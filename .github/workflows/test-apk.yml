@@ -162,6 +162,11 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: List available devices
+        run: |
+          echo "Available models:"
+          gcloud firebase test android models list --project cricket-38580 --format="table[box](id, manufacturer, form, name)" 2>&1 | head -30
+
       - name: Run Firebase Test Lab
         run: |
           APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
@@ -174,9 +179,7 @@ jobs:
           gcloud firebase test android run \
             --type robo \
             --app "$APK" \
-            --device model=Pixel3,version=30,locale=en,orientation=portrait \
-            --device model=Pixel4,version=30,locale=en,orientation=portrait \
-            --device model=Pixel5,version=33,locale=en,orientation=portrait \
+            --device model=MediumPhone.arm,version=34,locale=en,orientation=portrait \
             --timeout 10m \
             --project cricket-38580
 

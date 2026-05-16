@@ -74,19 +74,19 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Install platform for emulator
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "system-images;android-33;google_apis;x86_64" 2>/dev/null || true
-
       - name: Start emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: 34
           target: google_apis
           arch: x86_64
           avd-name: test-device
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -memory 2048
           disable-animations: true
+          force-avd-creation: true
+          boot-timeout: 600
+          ram-size: 2048M
+          cores: 2
           script: |
             # Wait for emulator to be ready
             adb wait-for-device
@@ -166,14 +166,23 @@ jobs:
 
       - name: Run Firebase Test Lab
         run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "No APK found!"
+            ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "Directory missing"
+            exit 1
+          fi
+          echo "Using APK: $APK"
+          echo "Testing APIs enabled..."
+          gcloud services list --enabled --project cricket-38580 | grep -E "testing|toolresults" || echo "APIs may need enabling"
           gcloud firebase test android run \
             --type robo \
-            --app app/build/outputs/apk/release/*.apk \
+            --app "$APK" \
             --device model=Pixel3,version=30,locale=en,orientation=portrait \
             --device model=Pixel6,version=33,locale=en,orientation=portrait \
             --device model=Pixel7,version=35,locale=en,orientation=portrait \
             --timeout 10m \
-            --project cricket-38580
+            --project cricket-38580 2>&1
 
       - name: Upload Firebase Test Lab results
         if: always()

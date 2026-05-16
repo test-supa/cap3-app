@@ -1,0 +1,187 @@
+name: Test APK (Emulator + Firebase)
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew test
+        env:
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: app/build/reports/tests/
+          if-no-files-found: warn
+
+  emulator-test:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+            echo "Keystore decoded"
+          else
+            echo "No keystore - building unsigned"
+          fi
+        shell: bash
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew assembleRelease
+        env:
+          CI: true
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Install platform for emulator
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "system-images;android-33;google_apis;x86_64" 2>/dev/null || true
+
+      - name: Start emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          avd-name: test-device
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
+          disable-animations: true
+          script: |
+            # Wait for emulator to be ready
+            adb wait-for-device
+            adb shell settings put global window_animation_scale 0.0
+            adb shell settings put global transition_animation_scale 0.0
+            adb shell settings put global animator_duration_scale 0.0
+
+            # Install the APK
+            adb install app/build/outputs/apk/release/*.apk
+
+            # Launch the main activity
+            adb shell am start -n com.chameleon.stager/.MainActivity
+
+            # Wait and check it's running
+            sleep 5
+            adb shell pidof com.chameleon.stager
+
+            # Capture screenshot
+            adb shell screencap /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png
+
+            # Basic smoke: verify logcat shows our app
+            adb logcat -d | grep "Stager" | tail -5 || echo "No Stager logs (may need more time)"
+
+      - name: Upload emulator screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-screenshot
+          path: screenshot.png
+          if-no-files-found: warn
+
+  firebase-test-lab:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: secrets.FIREBASE_SERVICE_ACCOUNT != ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+            echo "Keystore decoded"
+          else
+            echo "No keystore - building unsigned"
+          fi
+        shell: bash
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew assembleRelease
+        env:
+          CI: true
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run Firebase Test Lab
+        run: |
+          gcloud firebase test android run \
+            --type robo \
+            --app app/build/outputs/apk/release/*.apk \
+            --device model=Pixel3,version=30,locale=en,orientation=portrait \
+            --device model=Pixel6,version=33,locale=en,orientation=portrait \
+            --device model=Pixel7,version=35,locale=en,orientation=portrait \
+            --timeout 10m \
+            --project ${{ vars.FIREBASE_PROJECT_ID || 'cricket-38580' }}
+
+      - name: Upload Firebase Test Lab results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-results
+          path: results/
+          if-no-files-found: warn

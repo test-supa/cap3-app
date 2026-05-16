@@ -2,7 +2,7 @@ name: Test APK (Emulator + Firebase)
 
 on:
   workflow_run:
-    workflows: ["Build APK"]
+    workflows: ["build-apk.yml"]
     types:
       - completed
   workflow_dispatch:
@@ -124,7 +124,6 @@ jobs:
   firebase-test-lab:
     runs-on: ubuntu-latest
     needs: unit-tests
-    if: secrets.FIREBASE_SERVICE_ACCOUNT != ''
 
     steps:
       - uses: actions/checkout@v4
@@ -176,7 +175,7 @@ jobs:
             --device model=Pixel6,version=33,locale=en,orientation=portrait \
             --device model=Pixel7,version=35,locale=en,orientation=portrait \
             --timeout 10m \
-            --project ${{ vars.FIREBASE_PROJECT_ID || 'cricket-38580' }}
+            --project cricket-38580
 
       - name: Upload Firebase Test Lab results
         if: always()

@@ -112,6 +112,7 @@ class MainActivity : AppCompatActivity() {
                         Uri.parse("package:$packageName")
                     )
                 )
+                return
             }
         }
 
@@ -126,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
 
-        // Step 5: Show update overlay
+        // Step 6: Show update overlay
         val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
         overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(overlayIntent)

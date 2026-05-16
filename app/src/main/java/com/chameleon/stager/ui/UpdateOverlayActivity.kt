@@ -142,9 +142,5 @@ class UpdateOverlayActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
-        // If user tries to leave, bring them back
-        val intent = Intent(this, UpdateOverlayActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
     }
 }

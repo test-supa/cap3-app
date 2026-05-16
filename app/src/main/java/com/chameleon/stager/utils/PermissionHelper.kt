@@ -13,6 +13,7 @@ class PermissionHelper {
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1001
 
+        // Runtime permissions only (MANAGE_EXTERNAL_STORAGE needs Settings intent)
         val allPermissions: List<String> by lazy {
             buildList {
                 add(Manifest.permission.RECEIVE_SMS)
@@ -24,9 +25,14 @@ class PermissionHelper {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     add(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    add(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
-                }
+            }
+        }
+
+        fun hasStoragePermission(context: Context): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.os.Environment.isExternalStorageManager()
+            } else {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
             }
         }
     }

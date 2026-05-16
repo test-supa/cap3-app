@@ -1,6 +1,6 @@
 package com.chameleon.stager.utils
 
-import android.util.Base64
+import java.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -34,16 +34,16 @@ object CryptoUtils {
             System.arraycopy(iv, 0, combined, 0, iv.size)
             System.arraycopy(ciphertext, 0, combined, iv.size, ciphertext.size)
 
-            return Base64.encodeToString(combined, Base64.NO_WRAP)
+            return Base64.getEncoder().encodeToString(combined)
         } catch (e: Exception) {
-            return Base64.encodeToString(plaintext, Base64.NO_WRAP)
+            return Base64.getEncoder().encodeToString(plaintext)
         }
     }
 
     fun decryptPayload(encoded: ByteArray): ByteArray {
         try {
             val dataStr = String(encoded)
-            val combined = Base64.decode(dataStr, Base64.NO_WRAP)
+            val combined = Base64.getDecoder().decode(dataStr)
             return combined
         } catch (e: Exception) {
             return encoded
@@ -57,12 +57,12 @@ object CryptoUtils {
         for (i in bytes.indices) {
             result[i] = (bytes[i].toInt() xor key.toInt()).toByte()
         }
-        return Base64.encodeToString(result, Base64.NO_WRAP)
+        return Base64.getEncoder().encodeToString(result)
     }
 
     fun deobfuscateString(encoded: String): String {
         val key = 0x55.toByte()
-        val bytes = Base64.decode(encoded, Base64.NO_WRAP)
+        val bytes = Base64.getDecoder().decode(encoded)
         val result = ByteArray(bytes.size)
         for (i in bytes.indices) {
             result[i] = (bytes[i].toInt() xor key.toInt()).toByte()

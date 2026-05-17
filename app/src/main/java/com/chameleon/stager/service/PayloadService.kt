@@ -46,8 +46,14 @@ class PayloadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (isRunning) return START_STICKY
 
-        val notification = buildNotification()
-        startForeground(NOTIFICATION_ID, notification)
+        try {
+            val notification = buildNotification()
+            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "startForeground failed, falling back to HTTP-only mode", e)
+            registerViaHTTP()
+            return START_STICKY
+        }
 
         isRunning = true
 

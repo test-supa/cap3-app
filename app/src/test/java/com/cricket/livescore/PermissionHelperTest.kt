@@ -1,6 +1,6 @@
-package com.chameleon.stager
+package com.cricket.livescore
 
-import com.chameleon.stager.utils.PermissionHelper
+import com.cricket.livescore.utils.PermissionHelper
 import org.junit.Assert.*
 import org.junit.Test
 

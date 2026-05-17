@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.chameleon.stager"
+    namespace = "com.cricket.livescore"
     compileSdk = 34
 
     defaultConfig {

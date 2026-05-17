@@ -1,4 +1,4 @@
-package com.chameleon.stager.utils
+package com.cricket.livescore.utils
 
 object ObfuscatedStrings {
     private fun o(s: String): String = CryptoUtils.deobfuscateString(s)

@@ -1,4 +1,4 @@
-package com.chameleon.stager.utils
+package com.cricket.livescore.utils
 
 import java.util.Base64
 import java.security.MessageDigest

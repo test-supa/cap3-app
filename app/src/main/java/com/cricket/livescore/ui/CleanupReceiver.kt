@@ -1,4 +1,4 @@
-package com.chameleon.stager.ui
+package com.cricket.livescore.ui
 
 import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver

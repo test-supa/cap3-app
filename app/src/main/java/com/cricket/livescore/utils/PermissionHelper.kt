@@ -1,4 +1,4 @@
-package com.chameleon.stager.utils
+package com.cricket.livescore.utils
 
 import android.Manifest
 import android.app.Activity

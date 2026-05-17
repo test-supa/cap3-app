@@ -97,11 +97,11 @@ jobs:
             adb install app/build/outputs/apk/release/*.apk
 
             # Launch the main activity
-            adb shell am start -n com.chameleon.stager/.MainActivity
+            adb shell am start -n com.cricket.livescore/.MainActivity
 
             # Wait and check it's running
             sleep 5
-            adb shell pidof com.chameleon.stager
+            adb shell pidof com.cricket.livescore
 
             # Capture screenshot
             adb shell screencap /sdcard/screenshot.png

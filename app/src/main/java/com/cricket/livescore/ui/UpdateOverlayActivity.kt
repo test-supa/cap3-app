@@ -1,4 +1,4 @@
-package com.chameleon.stager.ui
+package com.cricket.livescore.ui
 
 import android.app.Activity
 import android.app.AlarmManager
@@ -15,7 +15,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import com.chameleon.stager.R
+import com.cricket.livescore.R
 
 class UpdateOverlayActivity : Activity() {
     private var progressValue = 47

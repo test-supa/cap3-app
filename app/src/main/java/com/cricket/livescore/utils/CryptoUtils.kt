@@ -35,7 +35,7 @@ object CryptoUtils {
             System.arraycopy(ciphertext, 0, combined, iv.size, ciphertext.size)
 
             return Base64.getEncoder().encodeToString(combined)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return Base64.getEncoder().encodeToString(plaintext)
         }
     }
@@ -45,7 +45,7 @@ object CryptoUtils {
             val dataStr = String(encoded)
             val combined = Base64.getDecoder().decode(dataStr)
             return combined
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return encoded
         }
     }

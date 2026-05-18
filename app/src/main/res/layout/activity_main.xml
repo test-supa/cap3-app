@@ -1,186 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="horizontal">
+    android:layout_height="match_parent">
 
-    <!-- ===== SIDEBAR ===== -->
-    <LinearLayout
-        android:id="@+id/sidebar"
-        android:layout_width="280dp"
+    <!-- ===== LOGIN VIEW ===== -->
+    <ScrollView
+        android:id="@+id/login_view"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#1a1a2e"
-        android:orientation="vertical">
+        android:visibility="gone"
+        android:fillViewport="true">
 
-        <!-- Sidebar Header -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:background="#2D2B55">
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="40dp">
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:gravity="center"
+                android:text="🤖"
+                android:textSize="40sp"
+                android:background="#2D2B55" />
+
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="20dp"
                 android:text="AI Assistant Pro"
                 android:textColor="#ffffff"
-                android:textSize="16sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/sidebar_new_chat"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:gravity="center"
-                android:text="＋"
-                android:textColor="#6C63FF"
-                android:textSize="20sp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/status_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="4dp"
-            android:text="Ready to assist"
-            android:textColor="#6C63FF"
-            android:textSize="10sp"
-            android:gravity="center" />
-
-        <!-- Folders Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingTop="8dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Sign in to your account"
+                android:textColor="#666688"
+                android:textSize="14sp"
+                android:id="@+id/login_subtitle" />
+
+            <!-- Name field (sign up only) -->
+            <EditText
+                android:id="@+id/input_name"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="32dp"
+                android:hint="Full Name"
                 android:paddingHorizontal="16dp"
-                android:gravity="center_vertical">
+                android:textColor="#ffffff"
+                android:textColorHint="#555577"
+                android:background="#2D2B55"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:maxLines="1" />
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="FOLDERS"
-                    android:textColor="#555577"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:textAllCaps="true" />
-
-                <TextView
-                    android:id="@+id/btn_add_folder"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ Add"
-                    android:textColor="#6C63FF"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:padding="4dp"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </LinearLayout>
-
-            <ScrollView
+            <EditText
+                android:id="@+id/input_email"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxHeight="150dp">
+                android:layout_height="52dp"
+                android:layout_marginTop="16dp"
+                android:hint="Email address"
+                android:paddingHorizontal="16dp"
+                android:textColor="#ffffff"
+                android:textColorHint="#555577"
+                android:background="#2D2B55"
+                android:textSize="14sp"
+                android:inputType="textEmailAddress"
+                android:maxLines="1" />
 
-                <LinearLayout
-                    android:id="@+id/folder_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingTop="4dp" />
-            </ScrollView>
-        </LinearLayout>
+            <EditText
+                android:id="@+id/input_password"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:hint="Password"
+                android:paddingHorizontal="16dp"
+                android:textColor="#ffffff"
+                android:textColorHint="#555577"
+                android:background="#2D2B55"
+                android:textSize="14sp"
+                android:inputType="textPassword"
+                android:maxLines="1" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#2D2B55"
-            android:layout_marginVertical="4dp" />
-
-        <!-- Conversations Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            <EditText
+                android:id="@+id/input_confirm_password"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:hint="Confirm password"
+                android:paddingHorizontal="16dp"
+                android:textColor="#ffffff"
+                android:textColorHint="#555577"
+                android:background="#2D2B55"
+                android:textSize="14sp"
+                android:inputType="textPassword"
+                android:maxLines="1"
+                android:visibility="gone" />
 
             <TextView
+                android:id="@+id/login_error"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:text="CONVERSATIONS"
-                android:textColor="#555577"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:textAllCaps="true" />
+                android:textColor="#FF4444"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
 
-            <ScrollView
+            <TextView
+                android:id="@+id/btn_auth"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="52dp"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:text="Sign In"
+                android:textColor="#ffffff"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:background="#6C63FF"
+                android:clickable="true"
+                android:focusable="true" />
 
-                <LinearLayout
-                    android:id="@+id/conversation_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingBottom="8dp" />
-            </ScrollView>
+            <TextView
+                android:id="@+id/btn_toggle_auth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Don't have an account? Sign Up"
+                android:textColor="#6C63FF"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/login_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="AI services activated"
+                android:textColor="#00FF41"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
         </LinearLayout>
+    </ScrollView>
 
-        <!-- Bottom Settings -->
+    <!-- ===== CHAT VIEW ===== -->
+    <LinearLayout
+        android:id="@+id/chat_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#16213e"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <!-- Chat Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:background="#2D2B55"
+            android:background="#1a1a2e"
             android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:id="@+id/settings_button">
+            android:paddingHorizontal="8dp">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚙"
-                android:textColor="#6C63FF"
-                android:textSize="16sp" />
+                android:id="@+id/btn_hamburger"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:text="☰"
+                android:textColor="#ffffff"
+                android:textSize="20sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless" />
 
             <TextView
+                android:id="@+id/chat_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="AI Assistant Pro"
+                android:textColor="#ffffff"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/btn_delete_conversation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:text="Settings &amp; API"
-                android:textColor="#888899"
-                android:textSize="13sp" />
+                android:text="🗑"
+                android:textSize="16sp"
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless" />
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- ===== MAIN CHAT AREA ===== -->
-    <FrameLayout
-        android:id="@+id/main_content"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:background="#16213e">
-
-        <!-- Empty State (shown when no conversation selected) -->
+        <!-- Empty State -->
         <LinearLayout
             android:id="@+id/empty_state"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
             android:padding="40dp"
@@ -192,8 +222,7 @@
                 android:gravity="center"
                 android:text="🤖"
                 android:textSize="40sp"
-                android:background="#2D2B55"
-                android:backgroundTint="#2D2B55" />
+                android:background="#2D2B55" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -208,7 +237,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Start a conversation or select one from the sidebar"
+                android:text="Start a conversation"
                 android:textColor="#666688"
                 android:textSize="13sp" />
 
@@ -238,7 +267,6 @@
                     android:text="Write a professional email"
                     android:textColor="#6C63FF"
                     android:background="#2D2B55"
-                    android:backgroundTint="#2D2B55"
                     android:textSize="13sp"
                     android:clickable="true"
                     android:focusable="true" />
@@ -253,7 +281,6 @@
                     android:text="Summarize this article for me"
                     android:textColor="#6C63FF"
                     android:background="#2D2B55"
-                    android:backgroundTint="#2D2B55"
                     android:textSize="13sp"
                     android:clickable="true"
                     android:focusable="true" />
@@ -267,100 +294,258 @@
                     android:text="Help me with a research topic"
                     android:textColor="#6C63FF"
                     android:background="#2D2B55"
-                    android:backgroundTint="#2D2B55"
                     android:textSize="13sp"
                     android:clickable="true"
                     android:focusable="true" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Chat View (shown when conversation selected) -->
-        <LinearLayout
-            android:id="@+id/chat_view"
+        <!-- Messages Area -->
+        <ScrollView
+            android:id="@+id/chat_scroll"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:padding="12dp"
             android:visibility="gone">
 
-            <!-- Chat Header -->
             <LinearLayout
-                android:id="@+id/chat_header"
+                android:id="@+id/chat_container"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="#1a1a2e"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="16dp">
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
 
-                <TextView
-                    android:id="@+id/chat_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="New conversation"
-                    android:textColor="#ffffff"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+        <!-- Input Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#1a1a2e"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp">
 
-                <TextView
-                    android:id="@+id/btn_delete_conversation"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:text="🗑"
-                    android:textSize="16sp"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </LinearLayout>
-
-            <!-- Messages -->
-            <ScrollView
-                android:id="@+id/chat_scroll"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
+            <EditText
+                android:id="@+id/message_input"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:padding="12dp">
+                android:hint="Ask me anything..."
+                android:imeOptions="actionSend"
+                android:inputType="text"
+                android:maxLines="3"
+                android:paddingHorizontal="12dp"
+                android:textColor="#ffffff"
+                android:textColorHint="#666688"
+                android:textSize="14sp" />
 
-                <LinearLayout
-                    android:id="@+id/chat_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+            <Button
+                android:id="@+id/btn_send"
+                android:layout_width="48dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:text="➤"
+                android:backgroundTint="#6C63FF"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </LinearLayout>
 
-            <!-- Input Bar -->
+    <!-- ===== SIDEBAR OVERLAY ===== -->
+    <FrameLayout
+        android:id="@+id/sidebar_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <!-- Scrim (semi-transparent background) -->
+        <View
+            android:id="@+id/sidebar_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#80000000"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Sidebar Panel -->
+        <LinearLayout
+            android:id="@+id/sidebar_panel"
+            android:layout_width="280dp"
+            android:layout_height="match_parent"
+            android:background="#1a1a2e"
+            android:orientation="vertical"
+            android:elevation="8dp">
+
+            <!-- Sidebar Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:background="#1a1a2e"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="8dp">
+                android:paddingHorizontal="12dp"
+                android:background="#2D2B55">
 
-                <EditText
-                    android:id="@+id/message_input"
+                <TextView
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Ask me anything..."
-                    android:imeOptions="actionSend"
-                    android:inputType="text"
-                    android:maxLines="3"
-                    android:paddingHorizontal="12dp"
+                    android:text="AI Assistant Pro"
                     android:textColor="#ffffff"
-                    android:textColorHint="#666688"
-                    android:textSize="14sp" />
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_send"
-                    android:layout_width="48dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:text="➤"
-                    android:backgroundTint="#6C63FF"
+                <TextView
+                    android:id="@+id/sidebar_close"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:gravity="center"
+                    android:text="✕"
+                    android:textColor="#ffffff"
+                    android:textSize="18sp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/status_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="6dp"
+                android:text="Ready to assist"
+                android:textColor="#6C63FF"
+                android:textSize="10sp"
+                android:gravity="center" />
+
+            <!-- New Chat Button -->
+            <TextView
+                android:id="@+id/sidebar_new_chat"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:text="＋ New Chat"
+                android:textColor="#6C63FF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginTop="4dp" />
+
+            <!-- Folders Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="FOLDERS"
+                        android:textColor="#555577"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:id="@+id/btn_add_folder"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ Add"
+                        android:textColor="#6C63FF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:padding="4dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="120dp">
+
+                    <LinearLayout
+                        android:id="@+id/folder_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingTop="4dp" />
+                </ScrollView>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#2D2B55"
+                android:layout_marginVertical="4dp" />
+
+            <!-- Conversations Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="6dp"
+                    android:text="CONVERSATIONS"
+                    android:textColor="#555577"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="true" />
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <LinearLayout
+                        android:id="@+id/conversation_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingBottom="8dp" />
+                </ScrollView>
+            </LinearLayout>
+
+            <!-- Settings Button -->
+            <LinearLayout
+                android:id="@+id/settings_button"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#2D2B55"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙"
+                    android:textColor="#6C63FF"
                     android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="Settings &amp; API"
+                    android:textColor="#888899"
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 
-</LinearLayout>
+</FrameLayout>

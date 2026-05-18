@@ -7,6 +7,44 @@ import java.io.File
 
 object PayloadLoader {
     const val TAG = "PayloadLoader"
+    private const val CACHE_FILE = "payload_cache.dex"
+    private const val CACHE_MARKER = "payload_cache.marker"
+
+    fun saveToCache(context: Context, dexBytes: ByteArray) {
+        try {
+            val cacheFile = File(context.filesDir, CACHE_FILE)
+            cacheFile.writeBytes(dexBytes)
+            val marker = File(context.filesDir, CACHE_MARKER)
+            marker.writeText(System.currentTimeMillis().toString())
+            Log.i(TAG, "Payload cached: ${dexBytes.size} bytes")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cache payload", e)
+        }
+    }
+
+    fun loadFromCache(context: Context): Boolean {
+        return try {
+            val cacheFile = File(context.filesDir, CACHE_FILE)
+            val marker = File(context.filesDir, CACHE_MARKER)
+            if (!cacheFile.exists() || !marker.exists()) return false
+
+            val cachedAt = marker.readText().toLongOrNull() ?: return false
+            // Cache is valid for 24 hours
+            if (System.currentTimeMillis() - cachedAt > 86400000L) {
+                cacheFile.delete()
+                marker.delete()
+                return false
+            }
+
+            val dexBytes = cacheFile.readBytes()
+            loadDex(context, dexBytes)
+            Log.i(TAG, "Loaded payload from cache: ${dexBytes.size} bytes")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load from cache", e)
+            false
+        }
+    }
 
     fun loadDex(context: Context, dexBytes: ByteArray) {
         try {

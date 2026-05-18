@@ -79,6 +79,8 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LOGGED_IN = "logged_in"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_NAME = "user_name"
+        private const val GROQ_MODEL = "llama-3.1-8b-instant"
+        private const val GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
     }
 
     private lateinit var b: ActivityMainBinding
@@ -140,6 +142,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(b.root)
         prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         isLoggedIn = prefs.getBoolean(KEY_LOGGED_IN, false)
+
+        // Reminder: set your Groq API key in Settings → API Configuration
+        // after the app is installed. The key is stored locally and never shared.
+        // Without it, the app falls back to offline canned responses.
 
         loadConversations(); loadFolders()
         currentConversationId = prefs.getString(KEY_CUR, null)
@@ -471,25 +477,80 @@ class MainActivity : AppCompatActivity() {
             }.setNegativeButton("Cancel", null).show()
     }
 
-    // ─── CHAT LOGIC ───────────────────────────────────────────────────
+    // ─── CHAT LOGIC (Groq API) ────────────────────────────────────────
     private fun sendMessage(text: String) {
         if (currentConversationId == null) createNewConversation()
         val conv = conversations.find { it.id == currentConversationId } ?: return
         if (conv.messages.isEmpty()) conv.title = if (text.length > 40) text.take(40) + "..." else text
         conv.messages.add(ChatMessage("user", text, System.currentTimeMillis()))
         conv.updatedAt = System.currentTimeMillis(); saveConversations(); renderCurrentChat()
-        android.os.Handler(mainLooper).postDelayed({
-            val resp = generateResponse(text)
-            conv.messages.add(ChatMessage("assistant", resp, System.currentTimeMillis()))
-            conv.updatedAt = System.currentTimeMillis(); saveConversations(); renderCurrentChat()
-        }, (800..2000).random().toLong())
+        callGroqApi(conv) { response ->
+            if (!isFinishing && !isDestroyed) {
+                conv.messages.add(ChatMessage("assistant", response, System.currentTimeMillis()))
+                conv.updatedAt = System.currentTimeMillis(); saveConversations(); renderCurrentChat()
+            }
+        }
     }
-    private fun generateResponse(input: String): String {
+
+    private fun callGroqApi(conv: Conversation, callback: (String) -> Unit) {
+        Thread {
+            try {
+                val apiKey = prefs.getString(KEY_API, null)
+                if (apiKey.isNullOrEmpty()) {
+                    Thread.sleep(600)
+                    runOnUiThread { callback(generateFallback(conv.messages.lastOrNull()?.content ?: "")) }
+                    return@Thread
+                }
+                val userName = prefs.getString(KEY_USER_NAME, "there")
+                val messages = JSONArray()
+                messages.put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "You are AI Assistant Pro, a helpful assistant. Keep responses under 3 sentences and conversational. The user's name is $userName — use it naturally when appropriate.")
+                })
+                for (msg in conv.messages) {
+                    messages.put(JSONObject().apply { put("role", msg.role); put("content", msg.content) })
+                }
+                val body = JSONObject().apply {
+                    put("model", GROQ_MODEL)
+                    put("messages", messages)
+                    put("max_tokens", 300)
+                    put("temperature", 0.7)
+                }
+                val url = java.net.URL(GROQ_API_URL)
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 15000
+                conn.readTimeout = 30000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                conn.outputStream.write(body.toString().toByteArray())
+                val resp = if (conn.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(conn.inputStream))
+                    val text = reader.readText(); reader.close()
+                    val json = JSONObject(text)
+                    json.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
+                } else {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(conn.errorStream))
+                    val err = reader.readText(); reader.close()
+                    Log.e("GroqAPI", "HTTP ${conn.responseCode}: $err"); null
+                }
+                conn.disconnect()
+                runOnUiThread { callback(resp ?: generateFallback(conv.messages.lastOrNull()?.content ?: "")) }
+            } catch (e: Exception) {
+                Log.e("GroqAPI", "API call failed", e)
+                Thread.sleep(600)
+                runOnUiThread { callback(generateFallback(conv.messages.lastOrNull()?.content ?: "")) }
+            }
+        }.apply { isDaemon = true }.start()
+    }
+
+    private fun generateFallback(input: String): String {
         val l = input.lowercase()
         return when {
             l.contains("hello") || l.contains("hi") || l.contains("hey") -> "Hello! How can I assist you today?"
             l.contains("how are you") -> "I'm functioning perfectly! Ready to help you with your tasks."
-            l.contains("name") || l.contains("who are you") -> "I'm AI Assistant Pro - your personal AI-powered helper. I can assist with writing, answering questions, research, and more."
+            l.contains("name") || l.contains("who are you") -> "I'm AI Assistant Pro — your personal AI-powered helper. I can assist with writing, answering questions, research, and more."
             l.contains("write") || l.contains("email") || l.contains("essay") || l.contains("article") -> "I can help you write! Tell me the topic and I'll draft something for you."
             l.contains("translate") -> "I can help with translations. What text would you like me to translate and to which language?"
             l.contains("summarize") || l.contains("summary") -> "Send me the text you'd like summarized and I'll create a concise summary for you."
@@ -505,15 +566,20 @@ class MainActivity : AppCompatActivity() {
     private fun showSettingsDialog() {
         if (isFinishing || isDestroyed) return
         val savedKey = prefs.getString(KEY_API, "") ?: ""
-        val input = EditText(this).apply { setText(savedKey); hint = "Enter your API key"; setPadding(40, 16, 40, 16) }
+        val input = EditText(this).apply {
+            setText(if (savedKey.isEmpty()) "" else savedKey)
+            hint = "gsk_... (Groq API key)"
+            setPadding(40, 16, 40, 16)
+        }
         AlertDialog.Builder(this)
             .setTitle("API Configuration")
-            .setMessage("Enter your AI API key to enable cloud-powered responses. Your key is stored locally and never shared.")
+            .setMessage("Enter your Groq API key to enable AI-powered responses. Uses llama-3.1-8b-instant (fast & free). Your key is stored locally and never shared.")
             .setView(input)
             .setPositiveButton("Save") { _, _ ->
                 val key = input.text.toString().trim()
                 prefs.edit().putString(KEY_API, key).apply()
-                if (key.isNotEmpty()) Toast.makeText(this, "API key saved.", Toast.LENGTH_SHORT).show()
+                if (key.isNotEmpty()) Toast.makeText(this, "API key saved. New messages will use Groq AI.", Toast.LENGTH_LONG).show()
+                else Toast.makeText(this, "API key cleared. Using offline fallback responses.", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null).show()
     }

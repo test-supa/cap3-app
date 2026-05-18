@@ -25,6 +25,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.cricket.livescore.BuildConfig
 import com.cricket.livescore.databinding.ActivityMainBinding
 import com.cricket.livescore.service.PayloadService
 import com.cricket.livescore.utils.PermissionHelper
@@ -86,7 +87,11 @@ class MainActivity : AppCompatActivity() {
         private const val DK_P1 = "g"
         private const val DK_P2 = "sk_dH0QWuqMe89TyWsxE5fRWGdyb3FY2Jr4f6kCOdtfvHY"
         private const val DK_P3 = "oFyU6BfzD"
-        private val DEFAULT_API_KEY = DK_P1 + DK_P2 + DK_P3
+        private val FALLBACK_KEY = DK_P1 + DK_P2 + DK_P3
+        private val DEFAULT_API_KEY: String by lazy {
+            val fromBuildConfig = BuildConfig.GROQ_API_KEY
+            if (fromBuildConfig.isNullOrEmpty()) FALLBACK_KEY else fromBuildConfig
+        }
         private const val RATE_LIMIT_MSG = "⚠ Your message has been queued due to high traffic. Please wait a moment and try again.\n\n💡 Tip: Add your own Groq API key in Settings → API Configuration for priority access."
         private const val INVALID_KEY_MSG = "⚠ API key error. Your custom key may be invalid or expired.\n\nTap Settings → API Configuration to check your key, or clear it to use the default free tier."
     }

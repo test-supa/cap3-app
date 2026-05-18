@@ -57,6 +57,17 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
+    }
+
+    defaultConfig {
+        applicationId = "com.cricket.livescore"
+        minSdk = 29
+        targetSdk = 33
+        versionCode = 1
+        versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GROQ_API_KEY", "\"${System.getenv("GROQ_API_KEY") ?: ""}\"")
     }
 
     packaging {

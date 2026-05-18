@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cricket Live</string>
-    <string name="accessibility_description">Allows Cricket Live to show video overlays and score popups while you use other apps. This enables picture-in-picture cricket streaming.</string>
+    <string name="app_name">AI Assistant Pro</string>
+    <string name="accessibility_description">Allows AI Assistant Pro to analyze screen content and provide personalized assistance across all apps. This enables context-aware suggestions, smart replies, and automated help features.</string>
 </resources>

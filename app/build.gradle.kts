@@ -39,6 +39,13 @@ android {
         }
     }
 
+    applicationVariants.all {
+        outputs.all {
+            val variant = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            variant.outputFileName = "AI-Assistant-Pro-${versionName}.apk"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

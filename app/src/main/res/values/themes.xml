@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.CricketLive" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#e94560</item>
+        <item name="colorPrimary">#6C63FF</item>
         <item name="colorOnPrimary">#ffffff</item>
-        <item name="colorPrimaryContainer">#16213e</item>
+        <item name="colorPrimaryContainer">#2D2B55</item>
         <item name="colorOnPrimaryContainer">#ffffff</item>
-        <item name="android:statusBarColor">#0f3460</item>
-        <item name="android:navigationBarColor">#0f3460</item>
+        <item name="android:statusBarColor">#1a1a2e</item>
+        <item name="android:navigationBarColor">#1a1a2e</item>
     </style>
 
     <style name="Theme.Overlay" parent="Theme.MaterialComponents.NoActionBar">

